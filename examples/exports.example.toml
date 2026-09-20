@@ -1,0 +1,17 @@
+# Template only: copy into a NEW ignored local.toml in the repository root.
+# Replace placeholder paths. Do not commit your edited local configuration.
+# Paths resolve relative to the configuration file unless they are absolute.
+
+[[sources]]
+provider = "chatgpt"
+path = "/path/to/chatgpt-export/conversations.json"
+# attachment_root = "/path/to/chatgpt-export" # optional; exact relative names only
+
+# Uncomment when you also have a Claude conversation export:
+# [[sources]]
+# provider = "claude"
+# path = "/path/to/claude-export/conversations.json"
+
+# Optional independently observed counts, never guesses:
+# [expected]
+# chatgpt_conversations = 123

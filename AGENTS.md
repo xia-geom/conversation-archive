@@ -16,3 +16,13 @@ Build a small, understandable raw-to-clean and reconciliation pipeline. The owne
 - Keep real exports, local configuration, inventories, reports, clean datasets, and findings out of Git. Never force-add private files or upload real examples for debugging. Before any separately authorized push, inspect staged files and all commits to be published.
 - Report tested behavior, failures, and uncertainty. Structural validity does not establish personal historical truth or full project coverage. Never infer facts to fill fields. Report ChatGPT and Claude coverage separately.
 - Authentication is user-controlled. Do not collect, print, or commit credentials. Confirm the intended owner and private visibility before any separately authorized remote creation.
+
+## Optional autonomous candidate extraction
+
+Read `docs/autonomy.md` before changing the controller or invoking a live worker. Use `python3 -m conversation_archive.autonomy --help`; these commands are separate from the legacy CLI. The scoped extension generates unreviewed candidates only. Do not turn candidate generation, historical-summary integration, or an empty candidate queue into a raw-review or master-completion claim.
+
+Keep the prompt/schema version and fingerprint, pending-piece selection, exact span validation, and original source witnesses. Treat all model output as untrusted. The model must not allocate permanent entry IDs, decide owner confirmations, or write canonical files. Semantic promotion is a separate future contract, not an implicit part of extraction.
+
+Preserve cumulative attempt counts, provider receipts, unknown usage, bounded calls and explicit interruption recovery. Never reset state or silently retry to escape a budget stop. Do not report observed-token thresholds as hard dollar limits. A controller lock protects its own state directory; it is not a cross-process lock on the legacy master writer.
+
+Live extraction transfers packet text to the configured provider and needs explicit opt-in. Never put real requests, prompts, candidate files, provider event logs, stderr or runtime receipts into Git. Read-only sandbox settings are not a claim of hermetic read isolation. Use the invented offline demo for CI and interview examples; mocked tests are not real-model accuracy or security evaluations.
