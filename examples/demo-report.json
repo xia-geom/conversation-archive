@@ -1,0 +1,12 @@
+{
+  "fixture_only_not_model_accuracy": true,
+  "selected_conversations": 2,
+  "packets": 9,
+  "first_pass_calls": 1,
+  "total_fixture_calls": 9,
+  "replay_extra_calls": 0,
+  "all_candidates_extracted": true,
+  "fabricated_quote_rejected": true,
+  "raw_reviewed_pieces": 0,
+  "canonical_files_unchanged": true
+}
