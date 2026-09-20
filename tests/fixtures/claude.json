@@ -1,0 +1,77 @@
+[
+  {
+    "uuid": "invented-claude-one",
+    "name": "Invented walking choices",
+    "created_at": "2025-01-02T03:04:05Z",
+    "updated_at": null,
+    "summary": "",
+    "chat_messages": [
+      {
+        "uuid": "invented-c-user",
+        "parent_message_uuid": "00000000-0000-4000-8000-000000000000",
+        "sender": "human",
+        "text": "Maybe a walk? 或者休息。",
+        "content": [
+          {
+            "type": "text",
+            "text": "Maybe a walk? 或者休息。"
+          }
+        ],
+        "created_at": "2025-01-02T03:04:05Z",
+        "updated_at": null,
+        "attachments": [
+          {
+            "file_name": "invented-note.txt",
+            "file_type": "text/plain",
+            "file_size": 17,
+            "extracted_content": "Invented note: 雨。"
+          }
+        ],
+        "files": [
+          {
+            "file_uuid": "invented-file",
+            "file_name": "absent.png"
+          }
+        ]
+      },
+      {
+        "uuid": "invented-c-a",
+        "parent_message_uuid": "invented-c-user",
+        "sender": "assistant",
+        "text": "Exported text representation.",
+        "content": [
+          {
+            "type": "text",
+            "text": "A different block representation."
+          },
+          {
+            "type": "thinking",
+            "thinking": "Invented assistant-only content."
+          }
+        ],
+        "created_at": "2025-01-02T03:04:05Z",
+        "updated_at": null,
+        "attachments": [],
+        "files": []
+      },
+      {
+        "uuid": "invented-c-b",
+        "parent_message_uuid": "invented-c-user",
+        "sender": "assistant",
+        "text": "",
+        "content": [],
+        "created_at": "2025-01-02T03:04:05Z",
+        "updated_at": null,
+        "attachments": [],
+        "files": []
+      }
+    ]
+  },
+  {
+    "uuid": "invented-claude-empty",
+    "name": "Invented empty conversation",
+    "created_at": null,
+    "updated_at": null,
+    "chat_messages": []
+  }
+]

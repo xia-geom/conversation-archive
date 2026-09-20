@@ -1,0 +1,15 @@
+# Entirely invented data. Paths resolve relative to this configuration.
+[[sources]]
+provider = "chatgpt"
+path = "chatgpt.json"
+
+[[sources]]
+provider = "claude"
+path = "claude.json"
+attachment_root = "."
+
+[expected]
+chatgpt_conversations = 2
+chatgpt_messages = 5
+claude_conversations = 2
+claude_messages = 3

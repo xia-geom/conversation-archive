@@ -1,0 +1,14 @@
+# Private inputs, outputs, configuration, and reports stay local.
+/data/
+/local.toml
+/local.*.toml
+*.local.toml
+/work/
+.*-staging-*/
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+build/
+dist/
+.DS_Store

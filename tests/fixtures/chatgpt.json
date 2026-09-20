@@ -1,0 +1,137 @@
+[
+  {
+    "id": "invented-gpt-one",
+    "title": "Invented multilingual garden",
+    "create_time": 1700000000,
+    "update_time": null,
+    "current_node": "reply-b",
+    "mapping": {
+      "root": {
+        "id": "root",
+        "parent": null,
+        "children": [
+          "user/~node"
+        ],
+        "message": null
+      },
+      "user/~node": {
+        "id": "user/~node",
+        "parent": "root",
+        "children": [
+          "reply-a",
+          "reply-b"
+        ],
+        "message": {
+          "id": "shared-invented-user",
+          "author": {
+            "role": "user"
+          },
+          "create_time": 1700000000,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "我今天种了薄荷。\nÇa pousse — maybe 🌱!"
+            ]
+          },
+          "metadata": {}
+        }
+      },
+      "reply-a": {
+        "id": "reply-a",
+        "parent": "user/~node",
+        "children": [],
+        "message": {
+          "id": "invented-a",
+          "author": {
+            "role": "assistant"
+          },
+          "create_time": 1700000000,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "First possible reply."
+            ]
+          },
+          "metadata": {}
+        }
+      },
+      "reply-b": {
+        "id": "reply-b",
+        "parent": "user/~node",
+        "children": [],
+        "message": {
+          "id": "invented-b",
+          "author": {
+            "role": "assistant"
+          },
+          "create_time": 1700000000,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Alternative reply."
+            ]
+          },
+          "metadata": {}
+        }
+      }
+    }
+  },
+  {
+    "id": "invented-gpt-two",
+    "title": "Invented continuation",
+    "create_time": null,
+    "update_time": null,
+    "current_node": "shared",
+    "mapping": {
+      "shared": {
+        "id": "shared",
+        "parent": null,
+        "children": [
+          "special"
+        ],
+        "message": {
+          "id": "shared-invented-user",
+          "author": {
+            "role": "user"
+          },
+          "create_time": 1700000000,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "我今天种了薄荷。\nÇa pousse — maybe 🌱!"
+            ]
+          },
+          "metadata": {}
+        }
+      },
+      "special": {
+        "id": "special",
+        "parent": "shared",
+        "children": [],
+        "message": {
+          "id": "invented-special",
+          "author": {
+            "role": "assistant"
+          },
+          "create_time": 1700000000,
+          "update_time": null,
+          "content": {
+            "content_type": "thoughts",
+            "parts": [],
+            "thoughts": [
+              {
+                "summary": "Invented exported assistant content",
+                "content": "Not a user statement."
+              }
+            ]
+          },
+          "metadata": {}
+        }
+      }
+    }
+  }
+]
