@@ -26,3 +26,9 @@ Keep the prompt/schema version and fingerprint, pending-piece selection, exact s
 Preserve cumulative attempt counts, provider receipts, unknown usage, bounded calls and explicit interruption recovery. Never reset state or silently retry to escape a budget stop. Do not report observed-token thresholds as hard dollar limits. A controller lock protects its own state directory; it is not a cross-process lock on the legacy master writer.
 
 Live extraction transfers packet text to the configured provider and needs explicit opt-in. Never put real requests, prompts, candidate files, provider event logs, stderr or runtime receipts into Git. Read-only sandbox settings are not a claim of hermetic read isolation. Use the invented offline demo for CI and interview examples; mocked tests are not real-model accuracy or security evaluations.
+
+## Second-stage organization
+
+Read `docs/organization.md` and `docs/organization-codex.md` for relationship reconstruction. Keep the graph in a local sidecar, not a rewritten master. Catalog families, repeated names, nearby dates and topical similarity are proposals, not entity identity or causation. Literal observations and scoped applications of prior confirmed answers are the automatic path; do not treat a model confidence number as permission to accept a semantic link.
+
+Before asking questions, load active rules and deferred uncertainties. Present bounded evidence and explicit alternatives; support partitions and partial answers. Compile only actual user confirmations into rules with finite entry/mention scopes and expected-state hashes. Preview effects, preserve negative decisions, reject conflicts, and retain revocation dependencies. Do not re-ask resolved questions on restart or silently migrate rules to a changed source snapshot. The current organization commands do not themselves call Codex or perform unrestricted semantic discovery.
