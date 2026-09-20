@@ -3,7 +3,7 @@
 A small Python pipeline for preserving and inspecting ChatGPT and Claude exports.
 **Clean means consistently structured and traceable. Text is not rewritten, summarized, translated, or classified.**
 
-This repository contains code, documentation, and invented test conversations only. Real exports stay where they are. Local configuration, derived datasets, inventories, and reports are excluded from Git. The existing personal master and its reports are outside this pipeline.
+This repository contains code, documentation, and invented test conversations only. Real exports stay where they are. Local configuration, derived datasets, inventories, and reports are excluded from Git. The importer never changes a personal master. The optional reconciliation layer can install explicitly reviewed, checked changes into a canonical master and its two reports when the owner authorizes integration.
 
 ## Understand the data flow
 
@@ -99,7 +99,10 @@ conversation_archive/
   adapters/claude.py        Claude parent graph and content projection
   pipeline.py              staged output, attachment candidates, inspection
   validation.py            source census and fidelity checks
-  __main__.py              four command-line operations
+  reconciliation.py        frozen review inventory, packets, decisions, installation journal
+  master_validation.py     active Markdown structure and preservation checks
+  reconcile_cli.py          prepare, packet, record, status, check, apply
+  __main__.py              importer commands and reconciliation dispatch
  tests/                    invented fixtures and evidence-focused tests
  docs/                     dictionary, walkthrough, later learning stages
  data/                     ignored local output (created when commands run)
@@ -107,3 +110,11 @@ conversation_archive/
 ```
 
 See [collaboration instructions](AGENTS.md) for how implementation changes should be explained and verified. Later stages—SQL, exploratory analysis, statistics, longitudinal work, annotations, search, and evaluation—are outlined in the [learning roadmap](docs/roadmap.md), not implemented yet.
+
+## Reconcile original conversations with a living record
+
+The optional flow is **validated records → readable packets → explicit findings → checked master changes**. Preparing a packet does not mean it was read; recording a review does not mean its findings were integrated. Review decisions and private installation journals belong in a local ignored manifest directory, never in Git.
+
+The [reconciliation walkthrough](docs/reconciliation.md) explains the six commands and includes a complete invented-data exercise. Start with `python3 -m conversation_archive reconcile --help`. The importer and its schema remain unchanged; reconciliation has its own review-format version. It checks source and dataset hashes again, retains branch alternatives and exact text ranges, and refuses stale master changes. Installation is atomic per file and journaled across the master and both reports so interruption can be recovered.
+
+Software can verify that a passage exists and a change preserves recorded evidence. It cannot decide that a recollection is true, infer an emotion, or turn an assistant explanation into an owner-confirmed fact. Those remain explicit review judgments. SQL, visualization, embeddings and automated interpretation remain later stages.

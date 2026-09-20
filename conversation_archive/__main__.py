@@ -30,8 +30,18 @@ def main(argv=None):
     g = a.add_mutually_exclusive_group(required=True)
     g.add_argument("--record-id")
     g.add_argument("--line", type=int)
+    from .reconcile_cli import add_parser, dispatch
+
+    add_parser(sub)
     args = p.parse_args(argv)
     try:
+        if args.command == "reconcile":
+            value = dispatch(args)
+            if isinstance(value, str):
+                print(value, end="")
+                return 0
+            print(json.dumps(value, ensure_ascii=False, indent=2))
+            return 1 if value.get("status") == "failed" else 0
         if args.command == "inventory":
             value = inventory(args.config)
             if args.output.exists():
