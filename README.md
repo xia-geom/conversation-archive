@@ -1,9 +1,21 @@
 # Conversation archive
 
-A small Python pipeline for preserving and inspecting ChatGPT and Claude exports.
-**Clean means consistently structured and traceable. Text is not rewritten, summarized, translated, or classified.**
+A small Python pipeline for preserving and inspecting ChatGPT and Claude exports, with an optional bounded Codex candidate-extraction controller.
+**Clean means consistently structured and traceable. The importer does not rewrite, summarize, translate, or classify text. Model proposals are kept in a separate candidate layer.**
 
 This repository contains code, documentation, and invented test conversations only. Real exports stay where they are. Local configuration, derived datasets, inventories, and reports are excluded from Git. The importer never changes a personal master. The optional reconciliation layer can install explicitly reviewed, checked changes into a canonical master and its two reports when the owner authorizes integration.
+
+## Optional bounded Codex extraction
+
+The new controller reads pending packets from an existing frozen review inventory, obtains structured extraction proposals, validates exact evidence and coverage, and saves **unreviewed candidates**. It records attempts and usage, resumes without repeating successful calls, and stops on invalid output or unknown usage. It does not record raw-review decisions or edit the master. The live adapter uses non-interactive Codex, not browser prompting; a real model run requires explicit opt-in and local authentication.
+
+Run the invented end-to-end example without Codex, credentials, or paid calls:
+
+```sh
+python3 -m conversation_archive.demo --output data/autonomy-demo
+```
+
+The demo uses a deterministic fixture, not an LLM accuracy benchmark. It demonstrates branching, Unicode source spans, replay, rejected fabricated quotations, and an unchanged canonical record. See the [architecture and runbook](docs/autonomy.md), [dated audit and remaining risks](docs/audit-2026-09-20.md), and [interview demonstration](docs/interview-demo.md). Unattended master promotion and cross-export incremental matching are not implemented by this extension.
 
 ## Understand the data flow
 
@@ -29,7 +41,7 @@ A message contains `raw` (the complete original JSON object) and `text_segments`
 
 ## Run the invented example first
 
-Requires **Python 3.11 or later**. No third-party runtime or test dependencies, account, or API key is needed. Run commands from the repository directory; installation is optional.
+Requires **Python 3.11 or later**. No third-party runtime or test dependencies, account, or API key is needed for the importer, reconciliation, tests, or offline demo. The optional live extractor additionally requires Codex; its controller requires macOS or Linux. Run commands from the repository directory; installation is optional.
 
 ```sh
 python3 -m unittest discover -s tests -v
@@ -74,7 +86,7 @@ python3 -m conversation_archive inspect --dataset data/clean-v1 --kind messages 
 
 `inspect` displays the clean record, its original JSON at the recorded pointer, and source locations. You can use `--record-id` instead of `--line`. It checks the clean file hash and the source hashes first. Its output may contain private conversation text; keep terminal captures local.
 
-Only conversation payloads are imported. HTML views, account/login metadata, derived memories, project documents, and library sidecars are not silently treated as conversation messages. This milestone does not infer project membership, event dates, emotions, diagnoses, or relationships.
+Only conversation payloads are imported. HTML views, account/login metadata, derived memories, project documents, and library sidecars are not silently treated as conversation messages. The importer does not infer project membership, event dates, emotions, diagnoses, or relationships.
 
 ## What makes this trustworthy—and what does not
 
@@ -83,7 +95,7 @@ Only conversation payloads are imported. HTML views, account/login metadata, der
 - **Branch preservation:** parent links, null graph nodes, and exported selection information survive. Absent ChatGPT child lists are `null`; branch counts can be calculated from explicit parent links. Claude's selected branch remains unknown. A reused message ID or branch title does not prove cross-conversation ancestry.
 - **Independent checks:** the validator rereads raw JSON and performs its own census and field/graph checks. It does not merely trust counts supplied by the adapters. Invalid references, cycles, unexpected counts, or changed text prevent installation.
 - **Honest attachment limits:** an exact relative filename can identify a local candidate, but does not prove it is the original attachment. Missing, ambiguous, unsafe, and unverified references remain visible. No network attachment fetches occur.
-- **Reproducibility:** the same input bytes, source locations/configuration, attachment state, and importer version produce identical output bytes. There are no generated wall-clock timestamps. Moving a source changes manifest paths but not source-based record IDs. Changing any byte in a source produces new IDs for that payload: these are versioned evidence identities, not lifetime conversation IDs.
+- **Reproducibility:** the same input bytes, source locations/configuration, attachment state, and importer version produce identical output bytes. There are no generated wall-clock timestamps in the normalized dataset. Moving a source changes manifest paths but not source-based record IDs. Changing any byte in a source produces new IDs for that payload: these are versioned evidence identities, not lifetime conversation IDs.
 
 Warnings permit an import but require interpretation; errors stop it. Unknown content shapes are preserved in `raw` and reported. Unsupported structural shapes stop the import with a clear error instead of producing a partial dataset. A failed staged dataset is removed; the error explains the failed check. The completed local report separates errors, warnings, and export limitations.
 
@@ -101,10 +113,14 @@ conversation_archive/
   validation.py            source census and fidelity checks
   reconciliation.py        frozen review inventory, packets, decisions, installation journal
   master_validation.py     active Markdown structure and preservation checks
-  reconcile_cli.py          prepare, packet, record, status, check, apply
+  reconcile_cli.py         prepare, packet, record, status, check, apply
+  extraction.py            versioned candidate schema/prompt and exact evidence checks
+  autonomy.py              bounded queue, durable attempts, resume and explicit recovery
+  codex_worker.py          opt-in non-interactive Codex adapter and usage telemetry
+  demo.py                  offline invented raw-to-candidate demonstration
   __main__.py              importer commands and reconciliation dispatch
  tests/                    invented fixtures and evidence-focused tests
- docs/                     dictionary, walkthrough, later learning stages
+ docs/                     dictionary, walkthrough, autonomy, audit, interview guide
  data/                     ignored local output (created when commands run)
  local.toml                ignored local paths and expected counts
 ```
@@ -117,4 +133,4 @@ The optional flow is **validated records → readable packets → explicit findi
 
 The [reconciliation walkthrough](docs/reconciliation.md) explains the six commands and includes a complete invented-data exercise. Start with `python3 -m conversation_archive reconcile --help`. The importer and its schema remain unchanged; reconciliation has its own review-format version. It checks source and dataset hashes again, retains branch alternatives and exact text ranges, and refuses stale master changes. Installation is atomic per file and journaled across the master and both reports so interruption can be recovered.
 
-Software can verify that a passage exists and a change preserves recorded evidence. It cannot decide that a recollection is true, infer an emotion, or turn an assistant explanation into an owner-confirmed fact. Those remain explicit review judgments. SQL, visualization, embeddings and automated interpretation remain later stages.
+Software can verify that a passage exists and a change preserves recorded evidence. It cannot decide that a recollection is true, infer an emotion, or turn an assistant explanation into an owner-confirmed fact. Those remain explicit review judgments. SQL, visualization, embeddings and autonomous master promotion remain later stages; the new candidate-only extraction layer does not replace that boundary.
