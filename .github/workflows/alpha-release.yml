@@ -70,7 +70,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          existing=$(gh api --paginate --slurp "repos/$RELEASE_REPO/releases?per_page=100" --jq '[.[][] | select(.tag_name == "v0.1.2a1")] | length')
+          existing=$(gh api --paginate --slurp "repos/$RELEASE_REPO/releases?per_page=100" | jq '[.[][] | select(.tag_name == "v0.1.2a1")] | length')
           if [ "$existing" != 0 ]; then
             echo 'Release already exists; preserved without replacement.'
             exit 0
