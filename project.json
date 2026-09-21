@@ -82,11 +82,19 @@
       ]
     },
     "migrate_authority": {
-      "status": "reported_local_not_in_inspected_main",
-      "guide": "docs/migration-acceptance.md",
-      "modules": [],
-      "help": null,
-      "next_action": "Inspect existing local migration code; publish synthetic acceptance evidence without restarting extraction."
+      "status": "implemented_schema_1_0_binding_only_acceptance_incomplete",
+      "guide": "docs/machine-archive.md",
+      "modules": [
+        "conversation_archive/machine_archive.py",
+        "conversation_archive/structured_archive.py"
+      ],
+      "help": [
+        "python3",
+        "-m",
+        "conversation_archive.machine_archive",
+        "--help"
+      ],
+      "next_action": "Validate correction accounting, replay and revocation before claiming full cutover."
     },
     "generate_llm_views": {
       "status": "planned",
@@ -113,6 +121,26 @@
       "viewer": "local Cytoscape.js; explicit pinned asset installation",
       "no_model_calls": true,
       "no_archive_writes": true
+    },
+    "raw_store": {
+      "status": "implemented_lossless_deduplication_and_conservative_delta",
+      "guide": "docs/raw-store.md",
+      "modules": [
+        "conversation_archive/raw_store.py",
+        "conversation_archive/raw_json.py",
+        "conversation_archive/raw_delta.py"
+      ],
+      "help": [
+        "python3",
+        "-m",
+        "conversation_archive.raw_store",
+        "--help"
+      ],
+      "input_format": "ChatGPT conversation JSON/ZIP",
+      "no_model_calls": true,
+      "originals_read_only": true,
+      "automatic_master_update": false,
+      "scope": "Exact selected JSON bytes; ZIP containers and attachment bytes remain external."
     }
   },
   "private_data_policy": "Real archives, databases, snapshots, questions, answers, prompts and generated views remain outside Git.",
