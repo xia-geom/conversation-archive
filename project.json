@@ -1,0 +1,57 @@
+{
+  "schema_version": "1.0",
+  "name": "conversation-archive",
+  "primary_reader": "ai_agent",
+  "instructions": "AGENTS.md",
+  "purpose": "Preserve conversation evidence and organize connected knowledge with scoped, reversible corrections.",
+  "target_authority": {
+    "canonical": "versioned structured entries, relationship assertions, and correction history",
+    "retrieval": "SQLite rebuilt from canonical records",
+    "views": "optional Markdown/navigation and evidence-grounded LLM explanations",
+    "migration_input": "existing master and original evidence, read-only"
+  },
+  "verification_command": ["python3", "-m", "unittest", "discover", "-s", "tests", "-v"],
+  "tasks": {
+    "import": {
+      "status": "implemented",
+      "guide": "docs/importing.md",
+      "modules": ["conversation_archive/inventory.py", "conversation_archive/pipeline.py", "conversation_archive/validation.py"],
+      "help": ["python3", "-m", "conversation_archive", "--help"]
+    },
+    "extract": {
+      "status": "implemented_requires_live_calibration",
+      "guide": "docs/autonomy.md",
+      "modules": ["conversation_archive/extraction.py", "conversation_archive/autonomy.py", "conversation_archive/codex_worker.py"],
+      "help": ["python3", "-m", "conversation_archive.autonomy", "--help"]
+    },
+    "organize": {
+      "status": "implemented_for_supplied_candidates",
+      "guide": "docs/question-batches.md",
+      "modules": ["conversation_archive/organization.py", "conversation_archive/organization_batches.py"],
+      "help": ["python3", "-m", "conversation_archive.organization_batches", "--help"],
+      "default_questions": 15,
+      "semantic_proposer": "separately invoked agent; not an autonomous discovery worker"
+    },
+    "reconcile_legacy": {
+      "status": "implemented_legacy_markdown_writer",
+      "guide": "docs/reconciliation.md",
+      "modules": ["conversation_archive/reconciliation.py", "conversation_archive/master_validation.py"],
+      "help": ["python3", "-m", "conversation_archive", "reconcile", "--help"]
+    },
+    "migrate_authority": {
+      "status": "reported_local_not_in_inspected_main",
+      "guide": "docs/migration-acceptance.md",
+      "modules": [],
+      "help": null,
+      "next_action": "Inspect existing local migration code; publish synthetic acceptance evidence without restarting extraction."
+    },
+    "generate_llm_views": {
+      "status": "planned",
+      "guide": "docs/migration-acceptance.md",
+      "modules": [],
+      "help": null
+    }
+  },
+  "private_data_policy": "Real archives, databases, snapshots, questions, answers, prompts and generated views remain outside Git.",
+  "companion_video": "https://github.com/xia-geom/math_video_project/tree/main/miscellaneous/conversation_archive_intro_en"
+}

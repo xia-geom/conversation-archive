@@ -1,43 +1,21 @@
 # Documentation
 
-[Project overview](../README.md) · [Quickstart](getting-started.md) · [Troubleshooting](troubleshooting.md)
+**AI agents:** start with [AGENTS.md](../AGENTS.md) and the [machine-readable task map](../project.json). Read one task guide, not this entire tree.
 
-**New here? Run the [hands-on quickstart](getting-started.md).** It uses invented data, shows the output, and needs no account or API key after you have obtained the repository.
-
-## Learn by doing
-
-| Guide | What you will be able to do |
+| Task | Start here |
 | --- | --- |
-| [Get started](getting-started.md) | Run the offline demo, inspect a candidate, and follow its source |
-| [Example files](../examples/README.md) | Find the fixture configuration, expected output, and a real-export config template |
-| [Importer walkthrough](walkthrough.md) | Explore normalization and deliberately test preservation checks |
-| [Reconciliation walkthrough](reconciliation.md) | Record an explicit review and understand checked integration |
-| [Connect existing entries](organization.md) | Resolve five project references with one scoped, reversible answer |
+| Try an offline example | [Getting started](getting-started.md) |
+| Import ChatGPT or Claude exports | [Importing](importing.md) |
+| Run bounded candidate extraction | [Autonomy](autonomy.md) |
+| Connect entries and answer 10–20 contextual questions | [Question batches](question-batches.md) |
+| Understand relationship rules and reversals | [Organization](organization.md) |
+| Prepare semantic relationship proposals with Codex | [Organization contract](organization-codex.md) |
+| Review findings and use the legacy Markdown writer | [Reconciliation](reconciliation.md) |
+| Complete structured-authority migration | [Migration acceptance](migration-acceptance.md) |
+| Fix setup or state problems | [Troubleshooting](troubleshooting.md) |
 
-## Use the tool on your data
+## Reference, only when needed
 
-| Guide | What it covers |
-| --- | --- |
-| [Import your exports](importing.md) | Source formats, local configuration, commands, outputs, and privacy |
-| [Bounded Codex extraction](autonomy.md) | Opt-in model calls, budgets, receipts, resumption, and recovery |
-| [Organization and clarification](organization.md) | Entry indexing, typed connections, question selection, correction rules, and a graph sidecar |
-| [Codex organization contract](organization-codex.md) | How a separately invoked agent prepares proposals and compiles scoped answers |
-| [Troubleshooting](troubleshooting.md) | Setup errors, reused output directories, stale state, missing usage, and media gaps |
+[Record fields](data-dictionary.md) · [Concepts](concepts.md) · [Importer walkthrough](walkthrough.md) · [Examples](../examples/README.md) · [Contributing](../CONTRIBUTING.md)
 
-## Understand and extend the system
-
-| Guide | What it covers |
-| --- | --- |
-| [Concepts and outcome rules](concepts.md) | Evidence, candidates, coverage states, and the meaning of each outcome |
-| [Data dictionary](data-dictionary.md) | Normalized record fields and their limits |
-| [Architecture audit](audit-2026-09-20.md) | Dated findings, implemented controls, and remaining risks |
-| [Interview demonstration](interview-demo.md) | An honest engineering walkthrough and evaluation milestones |
-| [Learning roadmap](roadmap.md) | Optional later analysis and learning stages, not current capabilities |
-| [Contributing](../CONTRIBUTING.md) | Development workflow, tests, and documentation conventions |
-| [Agent instructions](../AGENTS.md) | Repository-specific rules for coding agents |
-
-## Which document is authoritative?
-
-Use implemented CLI help for exact arguments, the data dictionary for normalized fields, the autonomy runbook for candidate-extraction state, and the organization guide for structural correction rules. The dated audit and learning roadmap describe findings and future work; they are not a promise that every listed capability exists.
-
-For a first overview, read [concepts](concepts.md), not the audit. For a first execution, run the offline demo, not a paid worker. Existing detailed guide paths have been retained so earlier links continue to work.
+[Architecture audit](audit-2026-09-20.md), [interview guide](interview-demo.md), and [learning roadmap](roadmap.md) retain their existing paths. Dated reports and planned capabilities are not proof of current implementation. CLI help and tests describe the checked-out code; the task map distinguishes implemented paths from locally reported or planned work.

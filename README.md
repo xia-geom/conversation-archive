@@ -1,22 +1,21 @@
 # Conversation Archive
 
-**Turn ChatGPT and Claude exports into structured records you can trace back to the original messages.**
+**Turn conversation exports into traceable records and connected knowledge.**
 
-Preserve conversations, branches, and attachment references. Optionally use Codex to propose evidence-backed findings, then review them before changing a living record.
+Preserve the evidence, propose connections, clarify uncertainty in batches, and keep corrections reusable. Related entries stay separate.
 
-[Get started](docs/getting-started.md) · [Use your own exports](docs/importing.md) · [How it works](docs/concepts.md) · [Connect entries](docs/question-batches.md) · [Documentation](docs/README.md) · [Contribute](CONTRIBUTING.md)
+## If you are an AI agent or language model
 
-## Try it first
+Read [AGENTS.md](AGENTS.md), then [project.json](project.json). Select only the guide for your task; do not load the entire documentation tree or personal archive. Verify your checkout before claiming that a capability exists.
 
-You need **Python 3.11 or newer**, Git, and macOS or Linux for this demo. No package installation, Codex account, API key, or paid model call is needed. If repository access is restricted, authenticate with an account that has access before cloning.
+## Try it
+
+Python 3.11+, Git, macOS or Linux. After obtaining repository access:
 
 ```sh
 git clone https://github.com/xia-geom/conversation-archive.git
 cd conversation-archive
-python3 --version
 ```
-
-Run from the repository root, using a new output directory:
 
 <!-- smoke:quickstart:start -->
 ```sh
@@ -25,7 +24,7 @@ python3 -m conversation_archive.autonomy status --state data/first-run/extractio
 ```
 <!-- smoke:quickstart:end -->
 
-The first command creates an invented archive, extracts candidates, resumes unfinished work, and checks that a repeat run does not duplicate calls. Selected fields from its output:
+Selected output:
 
 <!-- smoke:expected:start -->
 ```json
@@ -39,72 +38,24 @@ The first command creates an invented archive, extracts candidates, resumes unfi
 ```
 <!-- smoke:expected:end -->
 
-**This demo uses a deterministic test worker, not an AI model.** Its output demonstrates the pipeline's behavior, not extraction accuracy. Generated files stay under `data/first-run/`. To repeat the demo, choose a fresh path such as `data/second-run`; do not overwrite an earlier run.
+This is an **offline synthetic demo**, not a model-quality benchmark. No installation, account, API key, or paid model call is needed after cloning. Use a fresh output directory on another run. [Inspect the result](docs/getting-started.md).
 
-[Open your first result and follow its evidence →](docs/getting-started.md)
+## What works, and what comes next
 
-## What does the project actually do?
+**In this repository:** export preservation and validation; optional bounded Codex candidate extraction; separate checked reconciliation; relationship rules and batches of 15 contextual questions (10 or 20 configurable). Semantic relationship candidates still need an agent or operator. Exact quotations establish provenance, not correct interpretation.
 
-| Stage | What you get | Status |
-| --- | --- | --- |
-| Import exports | Readable JSONL records with original text, identities, branches, and source locations | Implemented; no model required |
-| Extract candidates | Attributed proposals with exact quotations and resumable attempt records | Implemented; live Codex adapter needs local setup and calibration |
-| Review and integrate | Explicit decisions, checked master changes, and an installation journal | Implemented as a separate review workflow, not automatic candidate promotion |
-| Connect existing entries | Relationship sidecar, prepared question batches with context, scoped reversible corrections | Implemented for supplied catalogs/proposals; live semantic discovery is not yet automated |
-| Process only changes in a new export | Cross-export matching and incremental extraction | Planned; same-run resumption already works |
+**Target architecture:** authoritative structured records and correction history → rebuildable SQLite retrieval → human-readable views on demand. Markdown becomes an optional export. The owner reports a local migration demonstration; its implementation is not present in the inspected GitHub baseline. Do not confuse that report with a shipped feature. [Migration status and acceptance checks](docs/migration-acceptance.md).
 
-The current master writer expects the project's specific Markdown schema and three canonical filenames. It is not a general-purpose editor for arbitrary Markdown. See [review and integration](docs/reconciliation.md).
+## Choose a task
 
-## Why not just ask for a summary?
+[Import exports](docs/importing.md) · [Run Codex extraction](docs/autonomy.md) · [Connect entries and answer batches](docs/question-batches.md) · [Develop or migrate](AGENTS.md) · [English companion video](https://github.com/xia-geom/math_video_project/tree/main/miscellaneous/conversation_archive_intro_en)
 
-A summary alone does not tell you whether a statement was a user's account, an unsent draft, a dream, or an assistant's suggestion. It also does not tell you which messages were omitted or what to do after an interrupted run.
+[All guides](docs/README.md) · [Troubleshooting](docs/troubleshooting.md) · [Contributing](CONTRIBUTING.md)
 
-This project keeps those questions inspectable:
-
-```text
-Read-only exports → validated records → bounded evidence packets
-                                             ↓
-                                  optional Codex extraction
-                                             ↓
-                                  unreviewed candidates
-                                             ↓
-                             separate review → checked master update
-```
-
-Generated, reviewed, and integrated are different states. Matching a quotation proves where the words came from; it does not prove that the model interpreted them correctly. [Read the outcome rules](docs/concepts.md#how-a-finding-becomes-an-outcome).
-
-## Connect the entries after extraction
-
-Prepare **15 questions at once**, each with entry titles, short source excerpts, and confirmed reference examples when available. Answer the batch together instead of waiting for regrouping after every question. Choose 10 or 20 with `--size`; small queues are not padded.
-
-```sh
-python3 -m conversation_archive.organization prepare --input examples/question-batches.json --run data/batch-example
-python3 -m conversation_archive.organization_batches prepare --run data/batch-example --output data/questions-01 --size 15
-python3 -m conversation_archive.organization_batches show --run data/batch-example --batch data/questions-01/batch.json
-```
-
-This invented example scans 40 entries and selects 15 questions from 20 supplied project families. It writes readable cards and a blank response template; no model is called and no answer is assumed. Related entries remain separate.
-
-The [batch walkthrough](docs/question-batches.md) explains compact replies, partial answers, full-context views, and one checked application for the whole reply. The [organization guide](docs/organization.md) covers graph rules and revocation. The [Codex contract](docs/organization-codex.md) requires broad semantic preprocessing before asking questions; the deterministic commands do not discover hidden relationships by themselves. No personal master is rewritten.
-
-## Choose your next step
-
-| Your goal | Start here |
-| --- | --- |
-| Run and inspect a small example | [Hands-on quickstart](docs/getting-started.md) |
-| Import your ChatGPT or Claude export locally | [Import guide](docs/importing.md) |
-| Configure optional live Codex extraction | [Autonomy runbook](docs/autonomy.md) |
-| Answer contextual questions in one batch | [Question batches](docs/question-batches.md) |
-| Connect related entries with reusable corrections | [Organization guide](docs/organization.md) |
-| Understand the design or present the project | [Concepts](docs/concepts.md) and [interview demo](docs/interview-demo.md) |
-| Fix a problem or contribute a change | [Troubleshooting](docs/troubleshooting.md) and [contributing](CONTRIBUTING.md) |
-
-## Development and privacy
+## Verify and keep private data local
 
 ```sh
 python3 -m unittest discover -s tests -v
 ```
 
-CI runs the tests and offline demo. Tests also execute the post-clone quickstart commands and check local documentation links. [View workflow runs](https://github.com/xia-geom/conversation-archive/actions/workflows/tests.yml).
-
-Only code, documentation, and invented examples belong in this repository. Real exports, prompts, generated candidates, logs, and personal masters stay local. Live extraction sends packet text to the configured provider and requires explicit opt-in; importing and the offline demo do not. See the [privacy and access notes](docs/importing.md#privacy-and-access) and [known limitations](docs/concepts.md#current-boundaries).
+Commit code, documentation, and invented examples only. Real exports, snapshots, databases, questions, answers, prompts, logs, and generated views stay local in ignored directories. Live model calls require explicit permission to transfer data. Do not rewrite the master or publish media as a side effect of setup.

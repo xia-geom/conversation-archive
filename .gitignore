@@ -12,3 +12,16 @@ __pycache__/
 build/
 dist/
 .DS_Store
+# Derived retrieval databases and SQLite journal sidecars are never source fixtures.
+*.sqlite
+*.sqlite3
+*.db
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite-journal
+*.sqlite3-wal
+*.sqlite3-shm
+*.sqlite3-journal
+*.db-wal
+*.db-shm
+*.db-journal
