@@ -25,6 +25,7 @@ async function api(route, params = {}) {
   return value;
 }
 function error(err) {
+  ++graphTicket; ++searchTicket; ++detailTicket;
   $("notice").textContent = err.message;
   $("notice").className = "error";
   if (cy) cy.elements().remove();
@@ -145,6 +146,12 @@ async function start() {
       {selector: "edge:selected", style: {"line-color": "#c27f17", "target-arrow-color": "#c27f17", width: 3}},
       {selector: "node:selected", style: {"border-color": "#c27f17", "border-width": 3}}
     ]});
+  let resizeFrame;
+  const observer = new ResizeObserver(() => {
+    cancelAnimationFrame(resizeFrame);
+    resizeFrame = requestAnimationFrame(() => {cy.resize(); cy.fit(undefined, 35);});
+  });
+  observer.observe($("cy"));
   cy.on("tap", "node", e => inspectNode(e.target.id()).catch(error));
   cy.on("dbltap", "node", e => choose(e.target.id()).catch(error));
   cy.on("tap", "edge", e => inspectEdge(e.target.id()).catch(error));

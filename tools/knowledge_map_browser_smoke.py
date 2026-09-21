@@ -67,7 +67,12 @@ def exercise(assets, output, executable=None):
                     expect(page.locator("#node-list")).to_contain_text("mention")
                     checks.append("primitive_mentions_can_be_inspected")
                     page.set_viewport_size({"width": 390, "height": 844})
-                    page.wait_for_timeout(150)
+                    page.wait_for_timeout(250)
+                    assert page.evaluate("""() => {
+                        const b = cy.elements().renderedBoundingBox();
+                        return b.x1 >= 0 && b.y1 >= 0 && b.x2 <= cy.width() && b.y2 <= cy.height();
+                    }""")
+                    checks.append("map_refits_inside_narrow_canvas")
                     assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
                     page.screenshot(path=str(output / "mobile.png"), full_page=True)
                     checks.append("narrow_viewport_no_horizontal_overflow")
