@@ -1,3 +1,4 @@
 """Traceable, local conversation export normalization."""
 
-from .model import IMPORTER_VERSION as __version__
+# Package release identity; existing importer/evidence formats retain their own versions.
+__version__ = "0.1.2a1"

@@ -50,3 +50,7 @@ The onboarding borrows presentation patterns, not code or claims:
 - [dlt](https://github.com/dlt-hub/dlt): a small end-to-end pipeline before the larger capability and configuration reference.
 
 Both were consulted on 2026-09-20. Here those patterns become an account-free synthetic demo, inspectable evidence, task-based guides, and explicit current limitations. No affiliation or endorsement is implied.
+
+## License and public reports
+
+Contributions to this repository are submitted under its [MIT license](LICENSE). Keep existing third-party notices. The companion video is maintained separately; its license is not replaced by this repository’s license. Vulnerabilities follow [SECURITY.md](SECURITY.md); public feedback must use invented examples. Be respectful, describe observable behavior, and never request another person’s private archive.

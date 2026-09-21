@@ -10,33 +10,76 @@
     "views": "optional Markdown/navigation and evidence-grounded LLM explanations",
     "migration_input": "existing master and original evidence, read-only"
   },
-  "verification_command": ["python3", "-m", "unittest", "discover", "-s", "tests", "-v"],
+  "verification_command": [
+    "python3",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "tests",
+    "-v"
+  ],
   "tasks": {
     "import": {
       "status": "implemented",
       "guide": "docs/importing.md",
-      "modules": ["conversation_archive/inventory.py", "conversation_archive/pipeline.py", "conversation_archive/validation.py"],
-      "help": ["python3", "-m", "conversation_archive", "--help"]
+      "modules": [
+        "conversation_archive/inventory.py",
+        "conversation_archive/pipeline.py",
+        "conversation_archive/validation.py"
+      ],
+      "help": [
+        "python3",
+        "-m",
+        "conversation_archive",
+        "--help"
+      ]
     },
     "extract": {
       "status": "implemented_requires_live_calibration",
       "guide": "docs/autonomy.md",
-      "modules": ["conversation_archive/extraction.py", "conversation_archive/autonomy.py", "conversation_archive/codex_worker.py"],
-      "help": ["python3", "-m", "conversation_archive.autonomy", "--help"]
+      "modules": [
+        "conversation_archive/extraction.py",
+        "conversation_archive/autonomy.py",
+        "conversation_archive/codex_worker.py"
+      ],
+      "help": [
+        "python3",
+        "-m",
+        "conversation_archive.autonomy",
+        "--help"
+      ]
     },
     "organize": {
       "status": "implemented_for_supplied_candidates",
       "guide": "docs/question-batches.md",
-      "modules": ["conversation_archive/organization.py", "conversation_archive/organization_batches.py"],
-      "help": ["python3", "-m", "conversation_archive.organization_batches", "--help"],
+      "modules": [
+        "conversation_archive/organization.py",
+        "conversation_archive/organization_batches.py"
+      ],
+      "help": [
+        "python3",
+        "-m",
+        "conversation_archive.organization_batches",
+        "--help"
+      ],
       "default_questions": 15,
       "semantic_proposer": "separately invoked agent; not an autonomous discovery worker"
     },
     "reconcile_legacy": {
       "status": "implemented_legacy_markdown_writer",
       "guide": "docs/reconciliation.md",
-      "modules": ["conversation_archive/reconciliation.py", "conversation_archive/master_validation.py"],
-      "help": ["python3", "-m", "conversation_archive", "reconcile", "--help"]
+      "modules": [
+        "conversation_archive/reconciliation.py",
+        "conversation_archive/master_validation.py"
+      ],
+      "help": [
+        "python3",
+        "-m",
+        "conversation_archive",
+        "reconcile",
+        "--help"
+      ]
     },
     "migrate_authority": {
       "status": "reported_local_not_in_inspected_main",
@@ -53,5 +96,15 @@
     }
   },
   "private_data_policy": "Real archives, databases, snapshots, questions, answers, prompts and generated views remain outside Git.",
-  "companion_video": "https://github.com/xia-geom/math_video_project/tree/main/miscellaneous/conversation_archive_intro_en"
+  "companion_video": "https://github.com/xia-geom/math_video_project/tree/main/miscellaneous/conversation_archive_intro_en",
+  "publication": {
+    "release": "0.1.2a1",
+    "stage": "alpha_preparation",
+    "guide": "docs/public-alpha.md",
+    "license": "LICENSE",
+    "security": "SECURITY.md",
+    "privacy": "PRIVACY.md",
+    "workflow_and_migration_development": "explicitly_deferred",
+    "visibility_changes": "owner_setting_after_publication_review"
+  }
 }

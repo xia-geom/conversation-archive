@@ -1,0 +1,78 @@
+name: Draft alpha release
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/alpha-release.yml'
+      - 'docs/releases/0.1.2a1.md'
+permissions:
+  contents: read
+concurrency:
+  group: draft-alpha-release
+  cancel-in-progress: false
+jobs:
+  verify:
+    if: github.repository == 'xia-geom/conversation-archive' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.13'
+      - run: python -m unittest discover -s tests -v
+  cleanup-review-copy:
+    needs: verify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: Remove only the downloaded private publication-review artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_REPO: ${{ github.repository }}
+        run: |
+          python - <<'PYTHON'
+          import json, os, subprocess
+          endpoint = f"repos/{os.environ['RELEASE_REPO']}/actions/artifacts/10624020259"
+          result = subprocess.run(['gh', 'api', endpoint], capture_output=True, text=True, timeout=30)
+          if result.returncode:
+              if json.loads(result.stdout or '{}').get('message') != 'Not Found':
+                  raise SystemExit('Cannot verify audit artifact; cleanup not performed.')
+              print('Audit review artifact already absent.')
+          else:
+              artifact = json.loads(result.stdout)
+              assert artifact['name'] == 'private-publication-review'
+              assert artifact['digest'] == 'sha256:9adc45fcd8d478aa571f4dfcaf920e9ddd6b35f6045234d788268799a27930e0'
+              subprocess.run(['gh', 'api', '--method', 'DELETE', endpoint], check=True, timeout=30)
+              print('Downloaded audit copy removed from GitHub. Original history and logs retained.')
+          PYTHON
+  draft:
+    needs: [verify, cleanup-review-copy]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - name: Create draft only; never change visibility or overwrite an existing release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_REPO: ${{ github.repository }}
+          RELEASE_SHA: ${{ github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          existing=$(gh api --paginate --slurp "repos/$RELEASE_REPO/releases?per_page=100" --jq '[.[][] | select(.tag_name == "v0.1.2a1")] | length')
+          if [ "$existing" != 0 ]; then
+            echo 'Release already exists; preserved without replacement.'
+            exit 0
+          fi
+          gh release create v0.1.2a1 --repo "$RELEASE_REPO" --target "$RELEASE_SHA" --draft --prerelease --title 'Conversation Archive 0.1.2a1 — experimental alpha' --notes-file docs/releases/0.1.2a1.md
