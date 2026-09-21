@@ -54,7 +54,7 @@ This is an **offline synthetic demo**, not a model-quality benchmark. No install
 
 ## Choose a task
 
-[Import exports](docs/importing.md) · [Run Codex extraction](docs/autonomy.md) · [Connect entries and answer batches](docs/question-batches.md) · [Develop or migrate](AGENTS.md) · [Watch the English introduction](https://github.com/xia-geom/math_video_project/releases/download/conversation-archive-intro-v1/conversation_archive_intro_en_silent_preview.mp4)
+[Import exports](docs/importing.md) · [Store and compare later exports](docs/raw-store.md) · [Run Codex extraction](docs/autonomy.md) · [Connect entries and answer batches](docs/question-batches.md) · [Develop or migrate](AGENTS.md) · [Watch the English introduction](https://github.com/xia-geom/math_video_project/releases/download/conversation-archive-intro-v1/conversation_archive_intro_en_silent_preview.mp4)
 
 [Machine archive](docs/machine-archive.md) · [SQLite migration](docs/structured-archive.md) · [All guides](docs/README.md) · [Troubleshooting](docs/troubleshooting.md) · [Contributing](CONTRIBUTING.md)
 

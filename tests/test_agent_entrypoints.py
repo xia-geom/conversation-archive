@@ -44,11 +44,11 @@ class AgentEntrypointTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn("usage:", result.stdout.lower())
 
-    def test_local_report_is_not_a_shipped_migration_claim(self):
+    def test_migration_implementation_is_not_full_acceptance(self):
         task = self.project["tasks"]["migrate_authority"]
-        self.assertEqual(task["status"], "reported_local_not_in_inspected_main")
-        self.assertEqual(task["modules"], [])
-        self.assertIsNone(task["help"])
+        self.assertEqual(task["status"], "implemented_schema_1_0_binding_only_acceptance_incomplete")
+        self.assertIn("conversation_archive/machine_archive.py", task["modules"])
+        self.assertIsNotNone(task["help"])
         self.assertEqual(self.project["tasks"]["generate_llm_views"]["status"], "planned")
 
     def test_context_batches_and_synthetic_privacy_are_explicit(self):

@@ -6,6 +6,7 @@
 | --- | --- |
 | Try an offline example | [Getting started](getting-started.md) |
 | Import ChatGPT or Claude exports | [Importing](importing.md) |
+| Deduplicate and compare later ChatGPT exports | [Raw evidence store](raw-store.md) |
 | Run bounded candidate extraction | [Autonomy](autonomy.md) |
 | Explore a local SQLite / Cytoscape knowledge map | [Knowledge map](knowledge-map.md) |
 | Connect entries and answer 10–20 contextual questions | [Question batches](question-batches.md) |
