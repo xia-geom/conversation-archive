@@ -1,0 +1,46 @@
+name: Private publication inventory
+on:
+  workflow_dispatch:
+  push:
+    branches: ['chore/public-alpha-preparation']
+    paths: ['tools/publication_audit.py', '.github/workflows/publication-audit.yml']
+permissions:
+  contents: read
+  actions: read
+  issues: read
+  pull-requests: read
+jobs:
+  inventory:
+    if: github.event.repository.private == true
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.13'
+      - name: Install checksum-pinned secret scanner
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          curl --fail --silent --show-error --location -o gitleaks.tgz https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz
+          echo '551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  gitleaks.tgz' | sha256sum --check --status
+          mkdir scanner-bin
+          tar -xzf gitleaks.tgz -C scanner-bin gitleaks
+          echo "$RUNNER_TEMP/scanner-bin" >> "$GITHUB_PATH"
+      - name: Collect available history and GitHub publication surfaces
+        env:
+          GH_TOKEN: ${{ github.token }}
+          AUDIT_REPO: ${{ github.repository }}
+        run: python tools/publication_audit.py --repo "$AUDIT_REPO" --output "$RUNNER_TEMP/publication-review"
+      - name: Retain private review material briefly
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: private-publication-review
+          path: ${{ runner.temp }}/publication-review/
+          retention-days: 3
+          if-no-files-found: error
