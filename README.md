@@ -50,13 +50,13 @@ This is an **offline synthetic demo**, not a model-quality benchmark. No install
 
 **In this repository:** export preservation and validation; optional bounded Codex candidate extraction; separate checked reconciliation; a read-only SQLite/Cytoscape knowledge map; relationship rules and batches of 15 contextual questions (10 or 20 configurable). Semantic relationship candidates still need an agent or operator. Exact quotations establish provenance, not correct interpretation.
 
-**Not shipped in this alpha:** automatic semantic discovery, the structured-authority migration, and LLM-generated views. The target remains structured records → rebuildable SQLite retrieval → optional readable views. [Capability map](project.json) · [Migration gates](docs/migration-acceptance.md).
+**Not shipped in this alpha:** automatic semantic discovery and LLM-generated views. The local structured-authority migration is implemented, but its full [acceptance gates](docs/migration-acceptance.md) remain under review. The target remains structured records → rebuildable SQLite retrieval → optional readable views. [Capability map](project.json) · [Migration gates](docs/migration-acceptance.md).
 
 ## Choose a task
 
 [Import exports](docs/importing.md) · [Run Codex extraction](docs/autonomy.md) · [Connect entries and answer batches](docs/question-batches.md) · [Develop or migrate](AGENTS.md) · [Watch the English introduction](https://github.com/xia-geom/math_video_project/releases/download/conversation-archive-intro-v1/conversation_archive_intro_en_silent_preview.mp4)
 
-[SQLite migration](docs/structured-archive.md) · [All guides](docs/README.md) · [Troubleshooting](docs/troubleshooting.md) · [Contributing](CONTRIBUTING.md)
+[Machine archive](docs/machine-archive.md) · [SQLite migration](docs/structured-archive.md) · [All guides](docs/README.md) · [Troubleshooting](docs/troubleshooting.md) · [Contributing](CONTRIBUTING.md)
 
 ## Verify and keep private data local
 

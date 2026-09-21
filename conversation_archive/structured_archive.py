@@ -249,7 +249,7 @@ def migrate(master: Path, organization_state: Path, database: Path,
                 rid = "derived-" + stable_id(edge["source"], edge["target"], edge["relation"], json.dumps(edge, sort_keys=True))
                 db.execute("INSERT OR IGNORE INTO relationships VALUES (?,?,?,?,?,?,?,?,?)", (
                     rid, edge["source"], edge["target"], edge["relation"], authority, "derived",
-                    json.dumps(edge.get("dimensions", edge.get("evidence", [])), ensure_ascii=False, sort_keys=True),
+                    json.dumps(edge, ensure_ascii=False, sort_keys=True),
                     json.dumps(edge.get("rule_ids", []), ensure_ascii=False), "derived_graph",
                 ))
         if questions:
