@@ -93,6 +93,26 @@
       "guide": "docs/migration-acceptance.md",
       "modules": [],
       "help": null
+    },
+    "knowledge_map": {
+      "status": "implemented_read_only_organization_projection",
+      "guide": "docs/knowledge-map.md",
+      "modules": [
+        "conversation_archive/knowledge_map.py",
+        "conversation_archive/knowledge_store.py",
+        "conversation_archive/knowledge_server.py"
+      ],
+      "help": [
+        "python3",
+        "-m",
+        "conversation_archive.knowledge_map",
+        "--help"
+      ],
+      "input_format": "organization-1.0",
+      "retrieval": "SQLite FTS5 and bounded graph neighborhoods",
+      "viewer": "local Cytoscape.js; explicit pinned asset installation",
+      "no_model_calls": true,
+      "no_archive_writes": true
     }
   },
   "private_data_policy": "Real archives, databases, snapshots, questions, answers, prompts and generated views remain outside Git.",

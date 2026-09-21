@@ -7,6 +7,7 @@
 | Try an offline example | [Getting started](getting-started.md) |
 | Import ChatGPT or Claude exports | [Importing](importing.md) |
 | Run bounded candidate extraction | [Autonomy](autonomy.md) |
+| Explore a local SQLite / Cytoscape knowledge map | [Knowledge map](knowledge-map.md) |
 | Connect entries and answer 10–20 contextual questions | [Question batches](question-batches.md) |
 | Understand relationship rules and reversals | [Organization](organization.md) |
 | Prepare semantic relationship proposals with Codex | [Organization contract](organization-codex.md) |

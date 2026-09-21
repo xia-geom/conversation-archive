@@ -19,3 +19,7 @@ Live attempts retain evidence and diagnostics locally; no automatic private-data
 The optional raw publication-review bundle contains existing repository history and logs. It is collected only while the repository is private, kept as a short-lived private artifact, and must be removed from GitHub before changing visibility. Retain only a reviewed, sanitized audit summary for publication.
 
 [Security reporting](SECURITY.md) · [Agent contract](AGENTS.md)
+
+## Local knowledge map
+
+The optional [map viewer](docs/knowledge-map.md) reads an owner-readable SQLite projection on loopback only. Its database retains exact entry text and correction answers; it is private, unencrypted local data. Browsing invokes no LLM, CDN, analytics or remote fonts. `knowledge_map assets --download` explicitly fetches only two checksum-pinned public library/license files from GitHub once; it sends no archive content. The viewer uses a per-session token and same-origin checks but is not a multi-user or internet-facing service. Keep the full session URL private and stop the server when finished. Generated maps and screenshots of a real archive must stay out of Git and public artifacts.

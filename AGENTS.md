@@ -30,6 +30,10 @@ Candidate workers do not allocate permanent master IDs or authorize their own fi
 
 Real exports, master-derived data, structured snapshots, SQLite files, prompts, answers, and views stay in ignored local storage. Repository work does not authorize edits to a neighboring personal archive. For separately authorized integration, read that archive's instructions and metadata without requesting redundant permission. Do not change visibility, publish private content, or force-push.
 
+## Knowledge map
+
+Read [the map guide](docs/knowledge-map.md). Project checked organization state into a new SQLite index; do not invent a migration-snapshot adapter. Watch the source with `--run` or explicitly select historical mode. No data leaves the local viewer, and no map action writes corrections or changes authority.
+
 ## Validation and routing
 
 Run `python3 -m unittest discover -s tests -v`. Test behavior, not just schema validity: exact provenance, missing/changed inputs, replay, interruption, scopes, revoked dependencies, and preservation of prior corrections. Test real archive changes locally; use synthetic examples in Git and CI.
