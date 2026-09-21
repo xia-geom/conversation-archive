@@ -42,9 +42,13 @@ Selected output:
 
 This is an **offline synthetic demo**, not a model-quality benchmark. No installation, account, API key, or paid model call is needed after cloning. Use a fresh output directory on another run. [Inspect the result](docs/getting-started.md).
 
+## Explore the knowledge map
+
+[Open a local SQLite + Cytoscape map](docs/knowledge-map.md): search entries, focus on nearby connections, and inspect exact evidence. Read-only, no model calls, and no hosted service. The pinned viewer library needs a one-time explicit download; browsing then works offline.
+
 ## What works, and what comes next
 
-**In this repository:** export preservation and validation; optional bounded Codex candidate extraction; separate checked reconciliation; relationship rules and batches of 15 contextual questions (10 or 20 configurable). Semantic relationship candidates still need an agent or operator. Exact quotations establish provenance, not correct interpretation.
+**In this repository:** export preservation and validation; optional bounded Codex candidate extraction; separate checked reconciliation; a read-only SQLite/Cytoscape knowledge map; relationship rules and batches of 15 contextual questions (10 or 20 configurable). Semantic relationship candidates still need an agent or operator. Exact quotations establish provenance, not correct interpretation.
 
 **Not shipped in this alpha:** automatic semantic discovery, the structured-authority migration, and LLM-generated views. The target remains structured records → rebuildable SQLite retrieval → optional readable views. [Capability map](project.json) · [Migration gates](docs/migration-acceptance.md).
 

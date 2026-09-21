@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Knowledge Map · Conversation Archive</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/cytoscape.min.js" defer></script>
+  <script src="/app.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#inspector">Skip to evidence</a>
+<header>
+  <div><span class="eyebrow">CONVERSATION ARCHIVE</span><h1>Knowledge map</h1></div>
+  <div class="session"><span class="pill">Local · Read only</span><p id="snapshot">Loading snapshot…</p></div>
+</header>
+<p id="notice" role="status" aria-live="polite">Search the record. Follow a connection. Inspect its evidence.</p>
+<main>
+  <aside class="search-panel" aria-label="Search archive">
+    <h2>Find a starting point</h2>
+    <label for="search">Name, project, phrase, or entry ID</label>
+    <input id="search" type="search" autocomplete="off" spellcheck="false" placeholder="Try Orchard or E0004">
+    <label for="kind">Search type</label>
+    <select id="kind"><option value="">All entries &amp; entities</option></select>
+    <p id="search-count" class="small" aria-live="polite"></p>
+    <div id="results" class="results"></div>
+    <button id="more" hidden>Load more results</button>
+    <div class="tip"><strong>Connections, not conclusions.</strong><p>Shared context does not mean the same event. Missing links do not mean no relationship exists.</p></div>
+  </aside>
+  <section class="map-panel" aria-labelledby="focus-title">
+    <div class="map-heading"><div><span class="eyebrow">FOCUSED NEIGHBORHOOD</span><h2 id="focus-title">Choose an entry or entity</h2></div><button id="fit" aria-label="Fit graph to view">Fit view</button></div>
+    <div class="controls">
+      <label>Evidence shown<select id="status"><option value="recorded">Recorded / confirmed</option><option value="proposed">Include proposals</option><option value="all">Include rejected</option></select></label>
+      <label>Distance<select id="depth"><option value="1">1 step</option><option value="2" selected>2 steps</option></select></label>
+      <label>Connection<select id="relation"><option value="">All types</option></select></label>
+      <label class="check"><input id="mentions" type="checkbox">Show mentions</label>
+    </div>
+    <div id="cy" role="img" aria-label="Relationship graph. The same nodes and connections are available in the keyboard-accessible list below."></div>
+    <div class="map-footer"><span id="graph-count" aria-live="polite">No graph selected</span><span>Click to inspect · Double-click to focus</span></div>
+    <div class="legend"><span>— Recorded / confirmed</span><span>┄ Proposed</span><span>·· Rejected</span><span>↗ Arrow = recorded direction</span></div>
+    <details class="navigation"><summary>Explore as a list · keyboard navigation</summary><h3>Nodes</h3><div id="node-list"></div><h3>Connections</h3><div id="edge-list"></div></details>
+  </section>
+  <aside id="inspector" class="evidence-panel" tabindex="-1" aria-label="Source evidence">
+    <span class="eyebrow">INSPECT THE EVIDENCE</span><h2>Every link has a source</h2>
+    <p>Select a node or connection to see exact entry text, source references, and supporting correction rules.</p>
+    <p class="small">The map cannot accept corrections or rewrite your archive.</p>
+  </aside>
+</main>
+<footer>SQLite retrieval · Cytoscape.js <span id="version"></span> · No LLM calls · <a href="/LICENSE.cytoscape">Cytoscape license</a></footer>
+</body>
+</html>
