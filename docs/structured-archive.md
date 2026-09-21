@@ -54,10 +54,10 @@ python3 -m conversation_archive.structured_archive validate \
   --master /path/to/emotion_master.md
 
 python3 -m conversation_archive.structured_archive query \
-  --database /path/to/private/archive.sqlite3 --entry E0037
+  --database /path/to/private/archive.sqlite3 --entry E0001
 
 python3 -m conversation_archive.structured_archive query \
-  --database /path/to/private/archive.sqlite3 --text Anne
+  --database /path/to/private/archive.sqlite3 --text Rowan
 ```
 
 Validation runs SQLite integrity and foreign-key checks, verifies the schema and optional current master hash, and reports counts. Text search is intentionally simple and inspectable; later FTS or embeddings can be added as separate retrieval indexes without changing evidence authority.

@@ -15,20 +15,20 @@ MASTER = """# Master
 
 ## E0001 — First Rowan account
 
-**Event period:** Childhood  
-**Record kind:** memory  
-**People / roles:** Rowan  
-**Topic labels:** school  
+**Event period:** Childhood
+**Record kind:** memory
+**People / roles:** Rowan
+**Topic labels:** school
 **Source references:** [SRC-001-S001](#src-001-s001)
 
 Rowan was there.
 
 ## E0002 — Second Rowan account
 
-**Event period:** Adulthood  
-**Record kind:** reflection  
-**People / roles:** Rowan  
-**Topic labels:** repair  
+**Event period:** Adulthood
+**Record kind:** reflection
+**People / roles:** Rowan
+**Topic labels:** repair
 **Source references:** [SRC-002-S001](#src-002-s001)
 
 I remembered Rowan.

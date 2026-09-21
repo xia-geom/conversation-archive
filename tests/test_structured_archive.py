@@ -14,20 +14,20 @@ MASTER = """# Master
 
 ## E0001 — First memory
 
-**Event period:** Childhood  
-**Record kind:** memory  
-**People / roles:** Rowan, mother  
-**Topic labels:** shame, school  
+**Event period:** Childhood
+**Record kind:** memory
+**People / roles:** Rowan, mother
+**Topic labels:** shame, school
 **Source references:** [SRC-001-S001](#src-001-s001)
 
 I remember Rowan at school.
 
 ## E0002 — Later reflection
 
-**Event period:** Adulthood  
-**Record kind:** reflection  
-**People / roles:** Rowan  
-**Topic labels:** shame, repair  
+**Event period:** Adulthood
+**Record kind:** reflection
+**People / roles:** Rowan
+**Topic labels:** shame, repair
 **Source references:** [SRC-002-S001](#src-002-s001)
 
 I thought again about Rowan.
