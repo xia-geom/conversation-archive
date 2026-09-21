@@ -16,7 +16,8 @@ from conversation_archive import organization as org
 
 
 def exercise(assets, output, executable=None):
-    from playwright.sync_api import sync_playwright
+    from playwright.sync_api import sync_playwright, expect
+    expect.set_options(timeout=10000)
     output = Path(output)
     output.mkdir(parents=True, exist_ok=False)
     errors, outside, checks = [], [], []
@@ -43,27 +44,27 @@ def exercise(assets, output, executable=None):
                     page = context.new_page()
                     page.on("pageerror", lambda exc: errors.append(str(exc)))
                     page.goto(server.launch_url, wait_until="networkidle")
-                    page.wait_for_function("document.querySelector('#focus-title').textContent === 'Orchard project'")
-                    page.wait_for_function("document.querySelector('#graph-count').textContent.includes('connections')")
+                    expect(page.locator("#focus-title")).to_have_text("Orchard project")
+                    expect(page.locator("#graph-count")).to_contain_text("connections")
                     checks.append("real_cytoscape_graph_rendered")
                     page.screenshot(path=str(output / "overview.png"), full_page=True)
                     page.locator(".navigation summary").click()
                     page.locator("#edge-list button").filter(has_text="refers to").first.click()
-                    page.wait_for_function("document.querySelector('#inspector').textContent.includes('demo-project')")
+                    expect(page.locator("#inspector")).to_contain_text("demo-project")
                     assert "Display shortcut" in page.locator("#inspector").inner_text()
                     checks.append("edge_evidence_and_rule_scope_visible")
                     page.screenshot(path=str(output / "evidence.png"), full_page=True)
                     page.locator("#search").fill("E0004")
-                    page.wait_for_function("document.querySelectorAll('#results button').length === 1")
+                    expect(page.locator("#results button")).to_have_count(1)
                     page.locator("#results button").click()
-                    page.wait_for_function("document.querySelector('#focus-title').textContent.includes('postponed')")
+                    expect(page.locator("#focus-title")).to_contain_text("postponed")
                     page.locator("#status").select_option("all")
-                    page.wait_for_function("document.querySelector('#edge-list').textContent.includes('rejected')")
+                    expect(page.locator("#edge-list")).to_contain_text("rejected")
                     page.locator("#status").select_option("recorded")
-                    page.wait_for_function("!document.querySelector('#edge-list').textContent.includes('rejected')")
+                    expect(page.locator("#edge-list")).not_to_contain_text("rejected")
                     checks.append("status_filter_removes_rejected_paths")
                     page.locator("#mentions").check()
-                    page.wait_for_function("document.querySelector('#node-list').textContent.includes('mention')")
+                    expect(page.locator("#node-list")).to_contain_text("mention")
                     checks.append("primitive_mentions_can_be_inspected")
                     page.set_viewport_size({"width": 390, "height": 844})
                     page.wait_for_timeout(150)
@@ -77,7 +78,7 @@ def exercise(assets, output, executable=None):
                                  {"op": "revoke", "rule_id": "browser-revoke-rule", "target": "demo-project"}]}
                     org.apply(root / "organization", event)
                     page.locator("#search").fill("Rowan")
-                    page.wait_for_function("document.querySelector('#notice').className === 'error'")
+                    expect(page.locator("#notice")).to_have_class("error")
                     assert "rebuild" in page.locator("#notice").inner_text().lower()
                     checks.append("stale_source_clears_view_and_requests_rebuild")
                     browser.close()
@@ -102,7 +103,7 @@ def exercise(assets, output, executable=None):
                     page.route("**/*", intercept)
                     page.goto(server.launch_url, wait_until="networkidle")
                     page.locator("#results button").first.click()
-                    page.wait_for_function("document.querySelector('#inspector').textContent.includes('onerror')")
+                    expect(page.locator("#inspector")).to_contain_text("onerror")
                     assert page.locator("#inspector img").count() == 0
                     assert page.evaluate("window.archiveXss !== true")
                     checks.append("untrusted_html_remains_inert_text")
