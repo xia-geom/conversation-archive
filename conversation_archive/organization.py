@@ -218,56 +218,11 @@ def graph(state):
                              "Catalog families are hypotheses; chronology is not causation."])
 
 
-def questions(state, limit=3, max_items=12):
-    require(type(limit) is int and limit > 0 and type(max_items) is int and max_items > 0, "Positive question limits required")
-    g = graph(state)
-    entry_text = {e["entry_id"]: e["text"] for e in g["entries"]}
-    pending = [m for m in g["mentions"] if m["mention_id"] not in g["assignments"] and m["mention_id"] not in g["deferred"]]
-    groups = defaultdict(list)
-    for m in pending:
-        groups[m["kind"], m["family"]].append(m)
-    options = []
-    for (kind, family), members in sorted(groups.items()):
-        for start in range(0, len(members), max_items):
-            group = []
-            for m in members[start:start + max_items]:
-                text = entry_text[m["entry_id"]]
-                lo, hi = max(0, m["start"] - 100), min(len(text), m["end"] + 140)
-                group.append(dict(m, context=text[lo:hi], context_start=lo, context_end=hi, context_excerpt_only=(lo > 0 or hi < len(text))))
-            if len({m["entry_id"] for m in members}) < 2:
-                continue
-            # Never infer an answer for the other chunks of a large family.
-            mids = [m["mention_id"] for m in group]
-            options.append(dict(question_id="Q-" + digest([kind, mids])[:24], kind=kind,
-                prompt=f"Which {kind} does each reference mean? Group only those that refer to the same {kind}; separate the others or mark them unknown.",
-                hypothesis_family=family, evidence=group, affected_entry_ids=sorted({m["entry_id"] for m in group}),
-                handles=mids, effort_units=1 + len(group) / 4, family_mentions=len(members),
-                family_mentions_not_shown=len(members) - len(group),
-                options=["same entity", "partition into groups", "some known, some unknown", "defer"],
-                answer_scope="Only the references shown. No identity merge of entries."))
-    for e in g["edges"]:
-        if e["status"] == "proposed":
-            options.append(dict(question_id="Q-" + digest(e)[:24], kind="relation",
-                prompt=f"Is the proposed {e['relation']} link from {e['source']} to {e['target']} supported? The quoted passages do not by themselves settle this.",
-                proposal_id=e["proposal_id"], evidence=e["evidence"],
-                affected_entry_ids=[e["source"], e["target"]], handles=["relation:" + e["proposal_id"]],
-                effort_units=2, options=["confirm", "reject", "leave pending"]))
-    # Greedy marginal-coverage heuristic. No calibrated entropy/probability claim.
-    picked, covered = [], set()
-    while options and len(picked) < limit:
-        def rank(q):
-            gain = len(set(q["affected_entry_ids"]) - {x[1] for x in covered if x[0] == q["kind"]})
-            return (-gain / q["effort_units"], -len(q["affected_entry_ids"]), q["question_id"])
-        q = min(options, key=rank)
-        options.remove(q)
-        gain = len(set(q["affected_entry_ids"]) - {x[1] for x in covered if x[0] == q["kind"]})
-        if not gain:
-            continue
-        q.update(priority_score=round(gain / q["effort_units"], 4),
-                 marginal_entry_facets=gain, ranking="new entry/facet coverage / estimated effort; not measured information gain")
-        picked.append(q)
-        covered.update((q["kind"], eid) for eid in q["affected_entry_ids"])
-    return picked
+def questions(state, limit=15, max_items=12):
+    """Scan the supplied catalog before ranking; use batches for frozen numbering."""
+    from .organization_batches import question_pool, select_questions
+    pool, _ = question_pool(state, max_items=max_items)
+    return select_questions(pool, limit=limit, root_first=False)
 
 
 def validate_event(event):
@@ -403,19 +358,8 @@ def apply(run, event):
 
 
 def render_questions(items):
-    lines = ["# Clarification questions", "", "Priority scores are workload heuristics, not probabilities."]
-    if not items:
-        lines.append("No questions in this queue. This does not establish complete organization.")
-    for number, q in enumerate(items, 1):
-        lines.extend(["", f"## {number}. {q['kind']}", "", q["prompt"], "",
-                      f"Affected entries: {', '.join(q['affected_entry_ids'])}", ""])
-        for evidence in q["evidence"]:
-            text = evidence.get("context", evidence["quote"])
-            fence = "`" * max(3, max((len(m[0]) + 1 for m in re.finditer(r"`+", text)), default=3))
-            lines.extend([f"Entry {evidence['entry_id']} (excerpt; exact evidence retained in JSON):", fence + "text", text, fence])
-        lines.extend(["", "Answer choices: " + "; ".join(q["options"]),
-                      "Entries remain separate. Only the confirmed relationship changes."])
-    return "\n".join(lines) + "\n"
+    from .organization_batches import render_questions as render
+    return render(items)
 
 
 def main(argv=None):
@@ -428,7 +372,7 @@ def main(argv=None):
         p = sub.add_parser(name)
         p.add_argument("--run", type=Path, required=True)
         if name == "questions":
-            p.add_argument("--limit", type=int, default=3)
+            p.add_argument("--limit", type=int, default=15)
             p.add_argument("--format", choices=("json", "markdown"), default="json")
         if name in ("preview", "apply"):
             p.add_argument("--decision", type=Path, required=True)
