@@ -118,5 +118,8 @@ class PublicationTests(unittest.TestCase):
     def test_deferred_work_stays_explicit(self):
         meta = json.loads((ROOT / 'project.json').read_text())
         self.assertEqual(meta['publication']['workflow_and_migration_development'], 'explicitly_deferred')
-        self.assertEqual(meta['tasks']['migrate_authority']['modules'], [])
+        # Migration code arrived after alpha preparation; existence is not full acceptance.
+        self.assertEqual(meta['tasks']['migrate_authority']['status'],
+                         'implemented_schema_1_0_binding_only_acceptance_incomplete')
+        self.assertFalse(meta['tasks']['raw_store']['automatic_master_update'])
         self.assertIn('server settings', (ROOT / 'docs/public-alpha.md').read_text())
