@@ -1,17 +1,19 @@
 # Second-stage organization: connect entries without rewriting them
 
-[Project overview](../README.md) · [Documentation](README.md) · [Codex organization contract](organization-codex.md)
+[Project overview](../README.md) · [Documentation](README.md) · [Codex organization contract](organization-codex.md) · [Prepared question batches](question-batches.md)
 
 Extraction answers **what was said**. Organization asks **which records are connected, in what way, and on what evidence**. Several entries can share a person, project, place or period without describing the same event. Keep those dimensions separate and preserve the original entries.
+
+For the normal interaction, use the [prepared-batch workflow](question-batches.md): scan all supplied candidates, prepare 15 context cards, collect the reply together, preview/apply once, then prepare the next batch. The small example below remains a low-level demonstration of individual rule operations.
 
 ```text
 Existing entries -> exact entry index -> proposed mentions and relationships
                                               |
                            literal observations + existing confirmed rules
                                               |
-                       uncertainty families -> a few prioritized questions
+                       uncertainty families -> prepared contextual batch
                                               |
-                       scoped answer -> impact preview -> rule history
+                       scoped answers -> impact preview -> rule history
                                               |
                        regenerated relationship graph (separate from master)
 ```
@@ -26,7 +28,7 @@ This release implements a dependency-free **organization sidecar** and an offlin
 | Mention discovery | Deterministic literal matching against a supplied typed catalog; exact source offsets retained |
 | Candidate families | A supplied catalog groups possible aliases; a family is a hypothesis, not an identity assertion |
 | Directed relationships | Supplied proposals with exact evidence from both endpoint entries; never accepted merely because quotations match |
-| Question selection | Bounded, deterministic ranking by new entry/facet coverage divided by estimated reading effort |
+| Question selection | Full supplied-candidate scan, contextual cards, coverage/effort ranking; prepared batches use frozen numbering and conservative root-first scheduling |
 | Corrections | Scoped alias binding, contextual association, relation acceptance/rejection, deferral, revocation, and dependency tracking |
 | Persistence | One local state file, advisory writer lock, atomic replacement, expected-state checks, repeat-answer idempotence, integrity hashes |
 | Live Codex proposer, calibrated information gain, automatic cross-snapshot rule migration | Designed below, not implemented or benchmarked |
@@ -122,11 +124,13 @@ Rules are reused across rebuilds of this **frozen entry snapshot**. There is no 
 
 ## Selecting questions efficiently
 
-The implemented rank is a transparent proxy: new entry/facet coverage divided by estimated effort. Repeated mentions of one entry do not count as many independently affected entries. Greedy selection discounts overlap among already selected questions for the same facet. The default is three questions, with at most twelve displayed mention excerpts per question. JSON discloses a larger family's omitted members; an answer is never inferred for those unseen members.
+The implemented rank is a transparent proxy: new entry/facet coverage divided by estimated reading effort, including displayed known-reference examples. Repeated mentions of one entry do not count as many independently affected entries. Greedy selection discounts overlap among already selected questions for the same facet. The default is 15 questions, with at most twelve displayed candidate mention excerpts per question. JSON discloses a larger family's omitted members; an answer is never inferred for those unseen members.
+
+For stable numbering, bulk answers and root-first scheduling, use [prepared batches](question-batches.md), normally of 10–20 questions. Each card shows a title/opening excerpt, original context, and relevant confirmed references. The ordinary `questions` command remains an unsaved preview and can include disjoint chunks of the same family.
 
 This is **not calibrated entropy reduction** or a claim that the selector is mathematically optimal. Before adding a learned score, measure how many correct links each question actually resolves and how much user work it takes. Keep separate measures for false merges, scope violations, repeat questions, useful coverage, unsupported causal links, and correction reversibility. A link count alone rewards over-connecting.
 
-The next selector should additionally consider dependency fan-out, contradiction risk, answerability, and diverse question types. Evaluate these changes against a fixed annotated example set. Ask the root question first when several downstream decisions truly depend on it, rather than counting every co-occurring record as guaranteed information gain.
+Prepared batches conservatively hold directed relations when their endpoints overlap unresolved identity/context questions, and show at most one chunk per family. This does not establish true logical dependencies or automatically resolve a held relation. Calibrated dependency fan-out, contradiction risk and answerability remain future evaluation work.
 
 ## Efficient Codex responsibilities
 

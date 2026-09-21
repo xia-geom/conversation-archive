@@ -4,7 +4,7 @@
 
 Preserve conversations, branches, and attachment references. Optionally use Codex to propose evidence-backed findings, then review them before changing a living record.
 
-[Get started](docs/getting-started.md) · [Use your own exports](docs/importing.md) · [How it works](docs/concepts.md) · [Connect entries](docs/organization.md) · [Documentation](docs/README.md) · [Contribute](CONTRIBUTING.md)
+[Get started](docs/getting-started.md) · [Use your own exports](docs/importing.md) · [How it works](docs/concepts.md) · [Connect entries](docs/question-batches.md) · [Documentation](docs/README.md) · [Contribute](CONTRIBUTING.md)
 
 ## Try it first
 
@@ -50,7 +50,7 @@ The first command creates an invented archive, extracts candidates, resumes unfi
 | Import exports | Readable JSONL records with original text, identities, branches, and source locations | Implemented; no model required |
 | Extract candidates | Attributed proposals with exact quotations and resumable attempt records | Implemented; live Codex adapter needs local setup and calibration |
 | Review and integrate | Explicit decisions, checked master changes, and an installation journal | Implemented as a separate review workflow, not automatic candidate promotion |
-| Connect existing entries | Relationship sidecar, grouped clarification questions, scoped reversible corrections | Implemented for supplied catalogs/proposals; live semantic discovery is not yet automated |
+| Connect existing entries | Relationship sidecar, prepared question batches with context, scoped reversible corrections | Implemented for supplied catalogs/proposals; live semantic discovery is not yet automated |
 | Process only changes in a new export | Cross-export matching and incremental extraction | Planned; same-run resumption already works |
 
 The current master writer expects the project's specific Markdown schema and three canonical filenames. It is not a general-purpose editor for arbitrary Markdown. See [review and integration](docs/reconciliation.md).
@@ -75,14 +75,17 @@ Generated, reviewed, and integrated are different states. Matching a quotation p
 
 ## Connect the entries after extraction
 
-A second-stage organization layer links records by person, project, place, period or event without merging their text. Try an invented example in which one clarification connects five project references:
+Prepare **15 questions at once**, each with entry titles, short source excerpts, and confirmed reference examples when available. Answer the batch together instead of waiting for regrouping after every question. Choose 10 or 20 with `--size`; small queues are not padded.
 
 ```sh
-python3 -m conversation_archive.organization prepare --input examples/organization.json --run data/organization-demo
-python3 -m conversation_archive.organization questions --run data/organization-demo --limit 3 --format markdown
+python3 -m conversation_archive.organization prepare --input examples/question-batches.json --run data/batch-example
+python3 -m conversation_archive.organization_batches prepare --run data/batch-example --output data/questions-01 --size 15
+python3 -m conversation_archive.organization_batches show --run data/batch-example --batch data/questions-01/batch.json
 ```
 
-The example's candidate aliases are supplied, not discovered by a live model. The [organization walkthrough](docs/organization.md) shows how to answer, preview the affected entries, apply a reusable correction, export the graph, and revoke mistaken rules. The [Codex contract](docs/organization-codex.md) explains how an agent should prepare proposals and avoid repetitive questions. No personal master is rewritten.
+This invented example scans 40 entries and selects 15 questions from 20 supplied project families. It writes readable cards and a blank response template; no model is called and no answer is assumed. Related entries remain separate.
+
+The [batch walkthrough](docs/question-batches.md) explains compact replies, partial answers, full-context views, and one checked application for the whole reply. The [organization guide](docs/organization.md) covers graph rules and revocation. The [Codex contract](docs/organization-codex.md) requires broad semantic preprocessing before asking questions; the deterministic commands do not discover hidden relationships by themselves. No personal master is rewritten.
 
 ## Choose your next step
 
@@ -91,6 +94,7 @@ The example's candidate aliases are supplied, not discovered by a live model. Th
 | Run and inspect a small example | [Hands-on quickstart](docs/getting-started.md) |
 | Import your ChatGPT or Claude export locally | [Import guide](docs/importing.md) |
 | Configure optional live Codex extraction | [Autonomy runbook](docs/autonomy.md) |
+| Answer contextual questions in one batch | [Question batches](docs/question-batches.md) |
 | Connect related entries with reusable corrections | [Organization guide](docs/organization.md) |
 | Understand the design or present the project | [Concepts](docs/concepts.md) and [interview demo](docs/interview-demo.md) |
 | Fix a problem or contribute a change | [Troubleshooting](docs/troubleshooting.md) and [contributing](CONTRIBUTING.md) |
