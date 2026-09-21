@@ -12,6 +12,7 @@
 | Understand relationship rules and reversals | [Organization](organization.md) |
 | Prepare semantic relationship proposals with Codex | [Organization contract](organization-codex.md) |
 | Review findings and use the legacy Markdown writer | [Reconciliation](reconciliation.md) |
+| Use the first-stage SQLite migration | [Structured archive](structured-archive.md) |
 | Complete structured-authority migration | [Migration acceptance](migration-acceptance.md) |
 | Fix setup or state problems | [Troubleshooting](troubleshooting.md) |
 

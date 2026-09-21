@@ -38,4 +38,6 @@ Read [the map guide](docs/knowledge-map.md). Project checked organization state 
 
 Run `python3 -m unittest discover -s tests -v`. Test behavior, not just schema validity: exact provenance, missing/changed inputs, replay, interruption, scopes, revoked dependencies, and preservation of prior corrections. Test real archive changes locally; use synthetic examples in Git and CI.
 
+For the implemented first-stage SQLite import, read [the structured archive guide](docs/structured-archive.md). Preserve the master as migration evidence, keep real databases ignored, and do not promote generated links during import.
+
 [Task map](project.json) · [Documentation](docs/README.md) · [Migration acceptance](docs/migration-acceptance.md)
