@@ -1,0 +1,20 @@
+{
+  "version": "1.0",
+  "entries": [
+    {"entry_id": "E0001", "text": "In spring 2024, Rowan and I planned Orchard in Riverton."},
+    {"entry_id": "E0002", "text": "The summer build needed a smaller prototype."},
+    {"entry_id": "E0003", "text": "Orchard: Rowan reviewed the prototype."},
+    {"entry_id": "E0004", "text": "I postponed the summer build after the budget review."},
+    {"entry_id": "E0005", "text": "I restarted Orchard and changed the test plan."},
+    {"entry_id": "E0006", "text": "Another Rowan helped with a separate class in Lakeside."}
+  ],
+  "catalog": [
+    {"kind": "project", "label": "Orchard", "family": "possible-project-aliases"},
+    {"kind": "project", "label": "summer build", "family": "possible-project-aliases"},
+    {"kind": "person", "label": "Rowan", "family": "rowan-mentions"},
+    {"kind": "place", "label": "Riverton", "family": "riverton"},
+    {"kind": "place", "label": "Lakeside", "family": "lakeside"},
+    {"kind": "period", "label": "spring 2024", "family": "spring-2024"}
+  ],
+  "proposals": []
+}

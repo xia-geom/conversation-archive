@@ -12,6 +12,7 @@
 | [Example files](../examples/README.md) | Find the fixture configuration, expected output, and a real-export config template |
 | [Importer walkthrough](walkthrough.md) | Explore normalization and deliberately test preservation checks |
 | [Reconciliation walkthrough](reconciliation.md) | Record an explicit review and understand checked integration |
+| [Connect existing entries](organization.md) | Resolve five project references with one scoped, reversible answer |
 
 ## Use the tool on your data
 
@@ -19,6 +20,8 @@
 | --- | --- |
 | [Import your exports](importing.md) | Source formats, local configuration, commands, outputs, and privacy |
 | [Bounded Codex extraction](autonomy.md) | Opt-in model calls, budgets, receipts, resumption, and recovery |
+| [Organization and clarification](organization.md) | Entry indexing, typed connections, question selection, correction rules, and a graph sidecar |
+| [Codex organization contract](organization-codex.md) | How a separately invoked agent prepares proposals and compiles scoped answers |
 | [Troubleshooting](troubleshooting.md) | Setup errors, reused output directories, stale state, missing usage, and media gaps |
 
 ## Understand and extend the system
@@ -35,6 +38,6 @@
 
 ## Which document is authoritative?
 
-Use implemented CLI help for exact arguments, the data dictionary for normalized fields, and the autonomy runbook for candidate-extraction state. The dated audit and learning roadmap describe findings and future work; they are not a promise that every listed capability exists.
+Use implemented CLI help for exact arguments, the data dictionary for normalized fields, the autonomy runbook for candidate-extraction state, and the organization guide for structural correction rules. The dated audit and learning roadmap describe findings and future work; they are not a promise that every listed capability exists.
 
 For a first overview, read [concepts](concepts.md), not the audit. For a first execution, run the offline demo, not a paid worker. Existing detailed guide paths have been retained so earlier links continue to work.
