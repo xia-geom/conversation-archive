@@ -1,7 +1,7 @@
-"""Offline, snapshot-bound review sessions. No model calls or source edits.
+"""Offline snapshot review: declarative controls, checked answers, immutable successors.
 
-Questions and HTML are disposable views. Decisions live in the existing
-canonical correction_events/correction_rules tables, never in browser storage.
+The snapshot remains authoritative. HTML, Codex, and other clients submit the
+same versioned answers; neither form definitions nor skills authorize writes.
 """
 from __future__ import annotations
 
@@ -15,20 +15,26 @@ from pathlib import Path
 import shutil
 import tempfile
 
+from . import review_controls as controls
+from . import review_identity as identity
+
 PROTOCOL = "snapshot-review-1.0"
 RELATIONS = {"continues", "revises", "precedes", "responds_to", "reported_cause"}
+# Legacy choices stay readable. Additional actions are explicitly versioned in a
+# prepared row's controls, rather than silently changing an older saved session.
 CHOICES = {
     "relationship": ("confirm", "reject", "insufficient", "defer", "reopen"),
     "conflict": ("disagree", "different_events", "different_date_roles",
                  "transcription_discrepancy", "corrected_report", "insufficient", "defer", "reopen"),
     "identity": ("defer", "reopen"),
+    "form": ("record", "insufficient", "defer", "reopen"),
 }
 CORE_TABLES = ("migration_sources", "entries", "entry_metadata", "source_references",
                "entities", "mentions", "relationships", "correction_events",
                "correction_rules", "unresolved_questions")
 
 
-class ReviewError(ValueError):
+class ReviewError(controls.ControlError):
     """A review cannot be represented safely with the supplied evidence."""
 
 
@@ -73,14 +79,12 @@ def write_json(path, value):
 
 
 def _fingerprint(root):
-    """Verify the complete expected manifest, not only whichever files it lists."""
     root = Path(root).resolve()
     require(not (root / "manifest.json").is_symlink(), "Snapshot manifest is a symlink")
     manifest = read_json(root / "manifest.json")
     expected = {name + ".jsonl" for name in CORE_TABLES} | {"nodes.jsonl"}
     require(set(manifest.get("files", {})) == expected, "Unsupported or incomplete snapshot manifest")
-    observed = {}
-    total = 0
+    observed, total = {}, 0
     for name in sorted(expected):
         path = root / name
         require(not path.is_symlink() and path.is_file(), "Missing file or snapshot symlink")
@@ -95,15 +99,13 @@ def _fingerprint(root):
 
 
 def read_snapshot(root):
-    # Reuse the existing authority schema and validator; no parallel master.
     from . import machine_archive as ma
     root = Path(root).resolve()
     before = _fingerprint(root)
     require(ma.validate(root)["status"] == "passed", "Invalid authoritative snapshot")
-    manifest = read_json(root / "manifest.json")
-    records = ma.archive_records(root)
+    manifest, records = read_json(root / "manifest.json"), ma.archive_records(root)
     require(_fingerprint(root) == before, "Snapshot changed during reading")
-    _review_state(records)  # also validate the extension's current decision history
+    _review_state(records)
     return manifest, records, before
 
 
@@ -130,11 +132,10 @@ def _evidence(items, entries):
 
 def normalize_case(case, entries):
     fields = {"kind", "title", "prompt", "reason", "evidence", "depends_on"}
-    optional = {"relation", "source_entry_id", "target_entry_id", "source_question_id"}
-    require(isinstance(case, dict) and fields <= set(case) <= fields | optional,
-            "Unexpected review-case fields")
+    optional = {"relation", "source_entry_id", "target_entry_id", "source_question_id", "form"}
+    require(isinstance(case, dict) and fields <= set(case) <= fields | optional, "Unexpected review-case fields")
     kind = case["kind"]
-    require(kind in CHOICES, "Unsupported question kind")
+    require(isinstance(kind, str) and kind in CHOICES, "Unsupported question kind")
     require(all(isinstance(case[key], str) and case[key].strip()
                 for key in ("title", "prompt", "reason")), "Question needs context and a precise prompt")
     deps = case["depends_on"]
@@ -150,19 +151,43 @@ def normalize_case(case, entries):
         require(not {"relation", "source_entry_id", "target_entry_id"} & set(case), "Unexpected relationship scope")
         if kind == "conflict":
             require(len(result["evidence"]) >= 2, "Potential conflict needs at least two assertion occurrences")
+    if kind == "form":
+        require("form" in case, "A general question needs a declared form")
+        result["form"] = controls.validate_form(case["form"])
+    else:
+        require("form" not in case, "Custom fields cannot change a registered semantic operation")
     return result
+
+
+def _control_spec(case, records):
+    """Trusted registry of semantic effects; a supplied form is always record-only."""
+    if case["kind"] == "form":
+        return {"version": controls.VERSION, "effect": "record_only", "action": "record", "form": case["form"]}
+    if case["kind"] == "identity":
+        scope = identity.scope_for(case, records)
+        return {"version": controls.VERSION, "effect": "bind_mentions", "action": "group",
+                "form": controls.identity_form(scope), "scope": scope}
+    return None
+
+
+def _answer_values(case, answer, spec):
+    action = spec["action"] if spec else None
+    if answer["choice"] == action:
+        require("values" in answer, "A structured answer is required")
+        return controls.validate_values(spec["form"], answer["values"])
+    require("values" not in answer, "This outcome does not accept form values")
+    return None
 
 
 def _review_state(records):
     entries = {e["entry_id"]: e for e in records["entries"]}
-    rule_ids = {r["rule_id"] for r in records["correction_rules"]}
-    require(len(rule_ids) == len(records["correction_rules"]), "Duplicate correction rule IDs")
+    rules = {r["rule_id"]: r for r in records["correction_rules"]}
+    require(len(rules) == len(records["correction_rules"]), "Duplicate correction rule IDs")
     active, cases, history = {}, {}, []
     for rule in records["correction_rules"]:
         if rule["operation"] == "review_queue":
             payload = json.loads(rule["payload_json"])
-            require(payload.get("protocol") == PROTOCOL
-                    and payload.get("authority") == "unresolved_candidate"
+            require(payload.get("protocol") == PROTOCOL and payload.get("authority") == "unresolved_candidate"
                     and isinstance(payload.get("cases"), list), "Invalid retained question queue")
             for candidate in payload["cases"]:
                 case = normalize_case(candidate, entries)
@@ -174,61 +199,67 @@ def _review_state(records):
         payload = json.loads(rule["payload_json"])
         require(payload.get("protocol") == PROTOCOL, "Unsupported review history protocol")
         case = normalize_case(payload["case"], entries)
-        qid = "RQ-" + digest(case)
-        require(payload.get("question_id") == qid and payload.get("choice") in CHOICES[case["kind"]]
-                and payload["choice"] != "reopen", "Invalid recorded answer")
-        require(payload["depends_on"] == ([] if payload["choice"] == "defer" else case["depends_on"]),
-                "Recorded comparison dependencies changed")
-        require(set(payload["depends_on"]) <= rule_ids, "Missing recorded review dependency")
+        qid, choice = "RQ-" + digest(case), payload.get("choice")
+        allowed = set(CHOICES[case["kind"]]) | ({"group"} if case["kind"] == "identity" else set())
+        require(payload.get("question_id") == qid and choice in allowed and choice != "reopen", "Invalid recorded answer")
+        extra_deps = payload.get("control_dependencies", [])
+        require(isinstance(extra_deps, list) and all(isinstance(x, str) for x in extra_deps)
+                and (case["kind"] == "identity" and choice == "group" or not extra_deps), "Invalid control dependencies")
+        expected_deps = [] if choice == "defer" else sorted(set(case["depends_on"]) | set(extra_deps))
+        require(payload["depends_on"] == expected_deps, "Recorded comparison dependencies changed")
+        require(set(payload["depends_on"]) <= set(rules), "Missing recorded review dependency")
+        if "values" in payload:
+            require(payload.get("controls_version") == controls.VERSION, "Unsupported recorded controls")
+            spec = ({"action": "group", "form": controls.identity_form(payload["identity_scope"])}
+                    if case["kind"] == "identity" else {"action": "record", "form": case.get("form")})
+            _answer_values(case, payload, spec)
+        else:
+            require(choice not in {"group", "record"}, "Recorded form answer is missing its values")
         cases[qid] = case
-        history.append({"question_id": qid, "rule_id": rule["rule_id"], "event_id": rule["event_id"],
-                        "choice": payload["choice"], "note": payload["note"], "active": bool(rule["active"])})
+        item = {"question_id": qid, "rule_id": rule["rule_id"], "event_id": rule["event_id"],
+                "choice": choice, "note": payload["note"], "active": bool(rule["active"])}
+        if "values" in payload:
+            item["values"] = payload["values"]
+        history.append(item)
         if rule["active"]:
             require(qid not in active, "Conflicting active answers for a question")
-            active[qid] = dict(history[-1])
-    current_rules = {r["rule_id"] for r in records["correction_rules"] if r["active"]}
-    for rule in records["correction_rules"]:
-        if rule["operation"] == "review_answer" and rule["active"]:
-            require(set(json.loads(rule["payload_json"])["depends_on"]) <= current_rules,
-                    "Review answer depends on an inactive rule")
-    review_rules = {r["rule_id"]: r for r in records["correction_rules"] if r["operation"] == "review_answer"}
+            require(all(rules[r]["active"] for r in payload["depends_on"]), "Review answer depends on an inactive rule")
+            active[qid] = dict(item)
     observed = set()
     for rel in records["relationships"]:
         if rel["origin"] != "snapshot_review_answer":
             continue
         supports = json.loads(rel["rule_ids_json"])
-        require(len(supports) == 1 and supports[0] in review_rules, "Review relationship lacks its decision")
-        rule = review_rules[supports[0]]
+        require(len(supports) == 1 and supports[0] in rules, "Review relationship lacks its decision")
+        rule = rules[supports[0]]
         payload = json.loads(rule["payload_json"])
         case = payload["case"]
-        require(rule["active"] and case["kind"] == "relationship"
+        require(rule["active"] and rule["operation"] == "review_answer" and case["kind"] == "relationship"
                 and payload["choice"] in {"confirm", "reject"}
-                and rel["source_id"] == case["source_entry_id"]
-                and rel["target_id"] == case["target_entry_id"]
+                and rel["source_id"] == case["source_entry_id"] and rel["target_id"] == case["target_entry_id"]
                 and rel["relation"] == case["relation"] and rel["authority"] == "owner_confirmed"
                 and rel["status"] == ("user_confirmed" if payload["choice"] == "confirm" else "rejected")
                 and json.loads(rel["evidence_json"]) == case["evidence"], "Review relationship disagrees with recorded answer")
         require(supports[0] not in observed, "Duplicate review relationship")
         observed.add(supports[0])
-    required = {rid for rid, r in review_rules.items() if r["active"]
+    required = {rid for rid, r in rules.items() if r["active"] and r["operation"] == "review_answer"
                 and json.loads(r["payload_json"])["case"]["kind"] == "relationship"
                 and json.loads(r["payload_json"])["choice"] in {"confirm", "reject"}}
     require(observed == required, "An active relationship answer is missing its projection")
+    identity.validate_bindings(records)
     return active, cases, history
 
 
 def queue_from_records(records, supplied=()):
     entries = {e["entry_id"]: e for e in records["entries"]}
     active, prior_cases, history = _review_state(records)
-    candidates = list(prior_cases.values()) + list(supplied)
-    blocked = []
-    mention_index = {m["mention_id"]: m for m in records["mentions"]}
+    candidates, blocked = list(prior_cases.values()) + list(supplied), []
+    mentions = {m["mention_id"]: m for m in records["mentions"]}
     for question in records["unresolved_questions"]:
         try:
-            witnesses = json.loads(question["evidence_json"])
             evidence = []
-            for witness in witnesses:
-                mention = mention_index[witness["mention_id"]]
+            for witness in json.loads(question["evidence_json"]):
+                mention = mentions[witness["mention_id"]]
                 require(mention["entry_id"] == witness["entry_id"], "Question mention scope mismatch")
                 evidence.append({k: mention[k] for k in ("entry_id", "start", "end", "quote")})
             candidates.append(dict(kind="identity", title=question["family"] or question["kind"],
@@ -250,32 +281,28 @@ def queue_from_records(records, supplied=()):
                 target_entry_id=rel["target_id"].removeprefix("entry:"), depends_on=[]))
         except (ReviewError, KeyError, TypeError, json.JSONDecodeError):
             blocked.append({"id": rel["relationship_id"], "reason": "Proposal lacks explicit two-entry spans"})
-    rows = {}
-    live = {r["rule_id"] for r in records["correction_rules"] if r["active"]}
+    rows, live = {}, {r["rule_id"] for r in records["correction_rules"] if r["active"]}
     for candidate in candidates:
         try:
             case = normalize_case(candidate, entries)
-        except ReviewError:
+        except controls.ControlError:
             if candidate in supplied:
                 raise
             blocked.append({"id": candidate.get("source_question_id", "existing-proposal"),
                             "reason": "Existing proposal has unsupported or changed evidence"})
             continue
         qid = "RQ-" + digest(case)
-        state = active.get(qid)
-        missing = sorted(set(case["depends_on"]) - live)
-        rows[qid] = {"question_id": qid, "case": case, "current": state,
-                     "blocked": "Inactive comparison dependency" if missing else None,
+        rows[qid] = {"question_id": qid, "case": case, "current": active.get(qid),
+                     "blocked": "Inactive comparison dependency" if set(case["depends_on"]) - live else None,
                      "choices": list(CHOICES[case["kind"]])}
-    order = {"conflict": 0, "relationship": 1, "identity": 2}
+    order = {"conflict": 0, "relationship": 1, "form": 2, "identity": 3}
     return sorted(rows.values(), key=lambda q: (order[q["case"]["kind"]], q["question_id"])), blocked, history
 
 
 def _outside(output, *inputs):
     out = Path(output).resolve()
     for source in inputs:
-        root = Path(source).resolve()
-        require(not out.is_relative_to(root), "Output must be outside preserved inputs")
+        require(not out.is_relative_to(Path(source).resolve()), "Output must be outside preserved inputs")
     return out
 
 
@@ -291,6 +318,10 @@ def prepare(archive, output, cases_path=None, size=15):
                 and isinstance(bundle["cases"], list), "Invalid or stale supplied cases")
         supplied = bundle["cases"]
     queue, blocked, history = queue_from_records(records, supplied)
+    for row in queue:
+        spec = _control_spec(row["case"], records)
+        if spec:
+            row["controls"] = spec
     selected = {w["entry_id"] for q in queue for w in q["case"]["evidence"]}
     body = dict(protocol=PROTOCOL, basis_snapshot_id=manifest["snapshot_id"],
         basis_fingerprint=fingerprint, batch_size=size, questions=queue, blocked=blocked, history=history,
@@ -322,21 +353,23 @@ def _checked_session(session, manifest, records, fingerprint):
     require(session.get("protocol") == PROTOCOL, "Unsupported review session")
     body = {k: v for k, v in session.items() if k != "session_id"}
     require(session.get("session_id") == "RS-" + digest(body), "Changed review session")
-    require(session["basis_snapshot_id"] == manifest["snapshot_id"]
-            and session["basis_fingerprint"] == fingerprint, "Stale review; preserve answers and prepare a new preview")
+    require(session["basis_snapshot_id"] == manifest["snapshot_id"] and session["basis_fingerprint"] == fingerprint,
+            "Stale review; preserve answers and prepare a new preview")
     entries = {e["entry_id"]: e for e in records["entries"]}
     current, _, _ = _review_state(records)
     questions = {}
     for row in session["questions"]:
         case = normalize_case(row["case"], entries)
         qid = "RQ-" + digest(case)
-        require(row["question_id"] == qid and qid not in questions
-                and row["current"] == current.get(qid)
+        require(row["question_id"] == qid and qid not in questions and row["current"] == current.get(qid)
                 and row["choices"] == list(CHOICES[case["kind"]]), "Question scope or prior answer changed")
+        if "controls" in row:
+            require(row["controls"] == _control_spec(case, records), "Form controls or identity scope changed")
+        require(case["kind"] != "form" or "controls" in row, "A general form is missing its controls")
         questions[qid] = row
     selected = {w["entry_id"] for q in questions.values() for w in q["case"]["evidence"]}
-    require(len(session["entries"]) == len(selected)
-            and {e["entry_id"] for e in session["entries"]} == selected, "Displayed entry coverage changed")
+    require(len(session["entries"]) == len(selected) and {e["entry_id"] for e in session["entries"]} == selected,
+            "Displayed entry coverage changed")
     for entry in session["entries"]:
         require(entries.get(entry["entry_id"]) == entry, "Displayed source text changed")
     require(session["metadata"] == [e for e in records["entry_metadata"] if e["entry_id"] in selected]
@@ -346,7 +379,7 @@ def _checked_session(session, manifest, records, fingerprint):
 
 
 def _withdraw(records, target, event_id, ordinal):
-    """Revoke only interpretation rules; never guess how to undo identity bindings."""
+    """Preflight the whole dependency closure; publish mutations only on success."""
     rules = {r["rule_id"]: r for r in records["correction_rules"]}
     require(target in rules and rules[target]["active"], "Unknown or inactive decision to replace")
     affected = {target}
@@ -356,26 +389,29 @@ def _withdraw(records, target, event_id, ordinal):
         if extra <= affected:
             break
         affected |= extra
-    require(all(rules[r]["operation"] in {"review_answer", "assert_relation"} for r in affected),
-            "Replacement affects an unsupported dependent operation; nothing was applied")
-    for rid in affected:
-        rules[rid]["active"] = 0
+    require(all(rules[r]["operation"] in {"review_answer", "assert_relation"} or identity.owned(rules[r])
+                for r in affected), "Replacement affects an unsupported dependent operation; nothing was applied")
+    draft = deepcopy(records)
+    for rule in draft["correction_rules"]:
+        if rule["rule_id"] in affected:
+            rule["active"] = 0
     kept = []
-    for rel in records["relationships"]:
+    for rel in draft["relationships"]:
         supports = json.loads(rel["rule_ids_json"])
-        if not set(supports) & affected:
-            kept.append(rel)
-            continue
-        remaining = [r for r in supports if r not in affected and rules[r]["active"]]
-        if remaining:
+        if set(supports) & affected:
+            remaining = [r for r in supports if r not in affected and rules[r]["active"]]
+            if not remaining:
+                continue
             rel["rule_ids_json"] = json.dumps(remaining)
-            kept.append(rel)
-    records["relationships"] = kept
-    record = {"rule_id": "RV-" + digest([event_id, target]), "event_id": event_id,
-              "ordinal": ordinal, "operation": "review_revoke", "active": 1,
-              "payload_json": json.dumps({"protocol": PROTOCOL, "target": target,
-                  "affected_rules": sorted(affected), "depends_on": []}, sort_keys=True)}
-    records["correction_rules"].append(record)
+        kept.append(rel)
+    draft["relationships"] = kept
+    identity.undo_bindings(draft, [rules[r] for r in affected])
+    draft["correction_rules"].append({"rule_id": "RV-" + digest([event_id, target]), "event_id": event_id,
+        "ordinal": ordinal, "operation": "review_revoke", "active": 1,
+        "payload_json": json.dumps({"protocol": PROTOCOL, "target": target,
+                                    "affected_rules": sorted(affected), "depends_on": []}, sort_keys=True)})
+    records.clear()
+    records.update(draft)
     return sorted(affected)
 
 
@@ -400,28 +436,26 @@ def plan(archive, session_path, answers_path):
     records["correction_events"].append({"event_id": event_id,
         "ordinal": max((e["ordinal"] for e in records["correction_events"]), default=-1) + 1,
         "actor": reply["actor"], "answer": encoded(reply).decode("utf-8")})
-    # Carry unanswered supplied cases into the successor as proposals, not owner answers.
-    # Otherwise a partial batch would lose every unhandled external conflict case.
     known_cases = _review_state(records)[1]
-    added_cases = [q["case"] for qid, q in questions.items()
-                   if qid not in known_cases and q["case"]["kind"] != "identity"]
+    added_cases = [q["case"] for qid, q in questions.items() if qid not in known_cases and q["case"]["kind"] != "identity"]
     if added_cases:
         records["correction_rules"].append({"rule_id": "RQK-" + digest([event_id, added_cases]),
-            "event_id": event_id, "ordinal": len(records["correction_rules"]),
-            "operation": "review_queue", "active": 1,
+            "event_id": event_id, "ordinal": len(records["correction_rules"]), "operation": "review_queue", "active": 1,
             "payload_json": json.dumps({"protocol": PROTOCOL, "authority": "unresolved_candidate",
                 "session_id": session["session_id"], "basis_snapshot_id": manifest["snapshot_id"],
                 "cases": added_cases, "depends_on": []}, ensure_ascii=False, sort_keys=True)})
     for answer in reply["answers"]:
-        require(isinstance(answer, dict) and set(answer) == {
-            "question_id", "choice", "note", "previous_rule_id"}, "Unexpected individual-answer fields")
+        required = {"question_id", "choice", "note", "previous_rule_id"}
+        require(isinstance(answer, dict) and required <= set(answer) <= required | {"values"}, "Unexpected individual-answer fields")
         qid = answer["question_id"]
         require(qid in questions and qid not in seen, "Unknown or repeated question")
         seen.add(qid)
         row = questions[qid]
-        case, choice = row["case"], answer["choice"]
-        require(choice in CHOICES[case["kind"]] and isinstance(answer["note"], str), "Invalid answer choice")
+        case, choice, spec = row["case"], answer["choice"], row.get("controls")
+        allowed = set(row["choices"]) | ({spec["action"]} if spec else set())
+        require(isinstance(choice, str) and choice in allowed and isinstance(answer["note"], str), "Invalid answer choice")
         require(not row["blocked"] or choice in {"defer", "reopen"}, "Comparison is blocked")
+        values = _answer_values(case, answer, spec)
         old = row["current"]["rule_id"] if row["current"] else None
         require(answer["previous_rule_id"] == old, "Replacement scope does not match displayed decision")
         prior_rules = {r["rule_id"]: deepcopy(r) for r in records["correction_rules"]}
@@ -430,20 +464,33 @@ def plan(archive, session_path, answers_path):
         for rid in removed:
             prior_payload = json.loads(prior_rules[rid]["payload_json"])
             withdrawn.append({"rule_id": rid, "operation": prior_rules[rid]["operation"],
-                              "title": prior_payload.get("case", {}).get("title", "Directed relationship"),
+                              "title": prior_payload.get("case", {}).get("title", "Dependent correction"),
                               "choice": prior_payload.get("choice", prior_payload.get("decision"))})
         require(choice != "reopen" or old is not None, "No previous decision to reopen")
+        effects = []
         if choice != "reopen":
+            extra_deps = identity.dependencies(values, records) if choice == "group" else []
+            deps = [] if choice == "defer" else sorted(set(case["depends_on"]) | set(extra_deps))
             active = {r["rule_id"] for r in records["correction_rules"] if r["active"]}
-            require(choice == "defer" or set(case["depends_on"]) <= active, "Comparison dependency is inactive")
+            require(set(deps) <= active, "Comparison dependency is inactive")
             rid = "RA-" + digest([event_id, qid])
             payload = {"protocol": PROTOCOL, "question_id": qid, "case": case,
-                       "choice": choice, "note": answer["note"], "depends_on": [] if choice == "defer" else case["depends_on"]}
+                       "choice": choice, "note": answer["note"], "depends_on": deps}
+            if values is not None:
+                payload.update(controls_version=controls.VERSION, values=values)
+                if choice == "group":
+                    payload.update(identity_scope=spec["scope"], control_dependencies=extra_deps)
             records["correction_rules"].append({"rule_id": rid, "event_id": event_id,
                 "ordinal": len(records["correction_rules"]), "operation": "review_answer", "active": 1,
                 "payload_json": json.dumps(payload, ensure_ascii=False, sort_keys=True)})
             new_rules.append(rid)
-            if case["kind"] == "relationship" and choice in {"confirm", "reject"}:
+            if choice == "group":
+                retired_ids = {json.loads(prior_rules[r]["payload_json"])["entity_id"]
+                    for r in removed if identity.owned(prior_rules[r])
+                    and json.loads(prior_rules[r]["payload_json"])["review_binding"]["created_entity"]}
+                restorable = [e for e in spec["scope"]["entities"] if e["entity_id"] in retired_ids]
+                effects = identity.bind_groups(records, spec["scope"], values, rid, event_id, restorable)
+            elif case["kind"] == "relationship" and choice in {"confirm", "reject"}:
                 a, b = case["source_entry_id"], case["target_entry_id"]
                 require(not any(r["source_id"].removeprefix("entry:") == a
                     and r["target_id"].removeprefix("entry:") == b and r["relation"] == case["relation"]
@@ -454,10 +501,12 @@ def plan(archive, session_path, answers_path):
                     "status": "user_confirmed" if choice == "confirm" else "rejected",
                     "evidence_json": json.dumps(case["evidence"], ensure_ascii=False, sort_keys=True),
                     "rule_ids_json": json.dumps([rid]), "origin": "snapshot_review_answer"})
-        impact.append({"question_id": qid, "title": case["title"], "kind": case["kind"],
-                       "choice": choice, "note": answer["note"], "withdrawn_rules": removed,
-                       "withdrawn_decisions": withdrawn,
-                       "evidence": case["evidence"]})
+        item = {"question_id": qid, "title": case["title"], "kind": case["kind"],
+                "choice": choice, "note": answer["note"], "withdrawn_rules": removed,
+                "withdrawn_decisions": withdrawn, "evidence": case["evidence"]}
+        if values is not None:
+            item.update(values=values, effect=spec["effect"], identity_changes=effects)
+        impact.append(item)
     from .machine_archive import confirmed_precedes_cycle
     require(not confirmed_precedes_cycle(records["relationships"]), "Confirmed chronology would contain a cycle")
     _review_state(records)
@@ -467,8 +516,7 @@ def plan(archive, session_path, answers_path):
                "basis_snapshot_id": manifest["snapshot_id"], "basis_fingerprint": fingerprint,
                "session_sha256": digest(session), "answers_sha256": digest(reply),
                "plan_sha256": digest(records), "impact": impact,
-               "unanswered": len(questions) - len(seen), "retained_proposals": len(added_cases),
-               "source_text_changed": False}
+               "unanswered": len(questions) - len(seen), "retained_proposals": len(added_cases), "source_text_changed": False}
     return receipt, records, manifest
 
 
@@ -495,7 +543,7 @@ def _output_lock(output):
         fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
         yield
     finally:
-        os.close(fd)  # Keep the lock inode, avoiding split-lock races.
+        os.close(fd)
 
 
 def apply(archive, session, answers, preview_path, output, snapshot_version, confirmed=False):
@@ -513,8 +561,8 @@ def apply(archive, session, answers, preview_path, output, snapshot_version, con
         if out.exists():
             existing, _, _ = read_snapshot(out)
             old_receipt, _, _ = plan(out, session, answers)
-            require(old_receipt["status"] == "already_applied"
-                    and existing["parent_snapshot_id"] == manifest["snapshot_id"], "Output already exists")
+            require(old_receipt["status"] == "already_applied" and existing["parent_snapshot_id"] == manifest["snapshot_id"],
+                    "Output already exists")
             return old_receipt
         stage = Path(tempfile.mkdtemp(prefix="." + out.name + "-review-", dir=out.parent))
         try:
@@ -532,15 +580,15 @@ def apply(archive, session, answers, preview_path, output, snapshot_version, con
             finally:
                 db.close()
             candidate = stage / "snapshot"
-            original_nodes = ma.load_jsonl(Path(archive) / "nodes.jsonl")
+            old_entities = {e["entity_id"] for e in ma.load_jsonl(Path(archive) / "entities.jsonl")}
+            removed_entities = old_entities - {e["entity_id"] for e in records["entities"]}
+            original_nodes = [n for n in ma.load_jsonl(Path(archive) / "nodes.jsonl") if n["node_id"] not in removed_entities]
             known_nodes = {n["node_id"] for n in ma.relationship_nodes(records, None)}
             extra = {"nodes": [{"id": n["node_id"], "type": n["node_type"], "label": n["label"]}
                                 for n in original_nodes if n["node_id"] not in known_nodes]}
             write_json(stage / "extra-nodes.json", extra)
             ma.snapshot(database, candidate, snapshot_version, derived_graph=stage / "extra-nodes.json",
-                        parent_snapshot_id=manifest["snapshot_id"],
-                        migration_exceptions=manifest.get("migration_exceptions", []))
-            # snapshot() regenerates helper nodes; retain original node evidence as well.
+                        parent_snapshot_id=manifest["snapshot_id"], migration_exceptions=manifest.get("migration_exceptions", []))
             generated = {n["node_id"]: n for n in ma.load_jsonl(candidate / "nodes.jsonl")}
             generated.update({n["node_id"]: n for n in original_nodes})
             (candidate / "nodes.jsonl").unlink()
@@ -556,7 +604,6 @@ def apply(archive, session, answers, preview_path, output, snapshot_version, con
             require(new_records["entries"] == records["entries"], "Source entry text changed")
             require(_fingerprint(archive) == receipt["basis_fingerprint"], "Source changed before publication")
             require(not out.exists(), "Output appeared concurrently")
-            # No global CURRENT pointer is advanced. The caller explicitly selects its successor.
             for path in candidate.iterdir():
                 os.chmod(path, 0o600)
                 with path.open("rb") as f:
@@ -598,12 +645,11 @@ def main(argv=None):
         else:
             result = apply(args.archive, args.session, args.answers, args.preview,
                            args.output, args.snapshot_version, args.confirm_user_answer)
-        print(json.dumps(result))  # Counts/opaque IDs only; never source excerpts or answers.
+        print(json.dumps(result))
         return 0
     except (ValueError, KeyError, TypeError, OSError) as exc:
-        # Do not echo a private path, a quote, or an untrusted exception payload.
         print(json.dumps({"status": "error", "error_type": type(exc).__name__,
-                          "message": str(exc) if isinstance(exc, ReviewError) else "Review failed; inspect inputs locally."}))
+            "message": str(exc) if isinstance(exc, controls.ControlError) else "Review failed; inspect inputs locally."}))
         return 2
 
 
