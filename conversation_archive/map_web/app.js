@@ -104,7 +104,8 @@ async function refreshGraph() {
   const ticket = ++graphTicket;
   const mode = $("status").value;
   const statuses = ["observed_text", "user_confirmed"];
-  if (mode !== "recorded") statuses.push("proposed");
+  if (mode === "derived" || mode === "all") statuses.push("derived");
+  if (mode === "proposed" || mode === "all") statuses.push("proposed");
   if (mode === "all") statuses.push("rejected");
   const data = await api("graph", {id: focus, depth: $("depth").value,
     statuses: statuses.join(","), mentions: $("mentions").checked ? "1" : "0", relation: $("relation").value});
@@ -142,6 +143,7 @@ async function start() {
       {selector: 'node[focus=1]', style: {"border-width": 3, "border-color": "#147d78", "font-weight": 700}},
       {selector: "edge", style: {width: 1.7, "line-color": "#83a8a2", "target-arrow-color": "#83a8a2", "target-arrow-shape": "triangle", "curve-style": "bezier", "arrow-scale": .8}},
       {selector: 'edge[status="proposed"]', style: {"line-style": "dashed", "line-color": "#b78435", "target-arrow-color": "#b78435"}},
+      {selector: 'edge[status="derived"]', style: {"line-style": "dashed", "line-color": "#8092a7", "target-arrow-color": "#8092a7"}},
       {selector: 'edge[status="rejected"]', style: {"line-style": "dotted", "line-color": "#b77480", "target-arrow-color": "#b77480"}},
       {selector: "edge:selected", style: {"line-color": "#c27f17", "target-arrow-color": "#c27f17", width: 3}},
       {selector: "node:selected", style: {"border-color": "#c27f17", "border-width": 3}}

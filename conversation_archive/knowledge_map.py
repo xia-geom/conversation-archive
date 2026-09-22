@@ -8,7 +8,7 @@ from pathlib import Path
 import sqlite3
 
 from . import organization as org
-from .knowledge_store import MapError, Store, build
+from .knowledge_store import MapError, Store, build, build_archive
 from .knowledge_server import MapHTTPServer, install_assets
 
 
@@ -82,11 +82,15 @@ def main(argv=None):
     p = sub.add_parser("build", help="Project checked organization state; never rewrite the master")
     p.add_argument("--run", type=Path, required=True)
     p.add_argument("--database", type=Path, required=True)
+    p = sub.add_parser("build-archive", help="Project a validated authoritative machine snapshot")
+    p.add_argument("--archive", type=Path, required=True)
+    p.add_argument("--database", type=Path, required=True)
     for command in ("search", "neighbors", "serve"):
         p = sub.add_parser(command)
         p.add_argument("--database", type=Path, required=True)
         source = p.add_mutually_exclusive_group(required=True)
         source.add_argument("--run", type=Path, help="Watch this source state and reject stale queries")
+        source.add_argument("--archive", type=Path, help="Watch an authoritative machine snapshot")
         source.add_argument("--snapshot-only", action="store_true", help="Explicitly inspect a historical index without a live-source check")
         if command == "serve":
             p.add_argument("--assets", type=Path, required=True)
@@ -107,8 +111,10 @@ def main(argv=None):
             result = install_assets(args.output, args.download, args.from_directory)
         elif args.command == "build":
             result = build(args.run, args.database)
+        elif args.command == "build-archive":
+            result = build_archive(args.archive, args.database)
         else:
-            store = Store(args.database, run=args.run)
+            store = Store(args.database, run=args.run, archive_root=args.archive)
             if args.command == "serve":
                 with MapHTTPServer(store, args.assets, args.port) as server:
                     print("Read-only local map. Open this session URL; stop with Ctrl+C:", flush=True)

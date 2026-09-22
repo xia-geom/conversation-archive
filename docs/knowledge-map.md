@@ -38,7 +38,7 @@ Queries show at most 100 nodes and 300 edges by default; hard caps are 200 and 5
 
 ## Use an existing organization run
 
-This first adapter consumes the already implemented **organization state format 1.0**, through its existing validator. It reads `state.json`, checks its data and answer history, and regenerates its graph. It never reads or modifies the legacy Markdown master.
+The map accepts either checked **organization state format 1.0** or a validated **authoritative machine snapshot format 1.0**. Both are read-only inputs. The machine adapter keeps exact entry slices, original relationship records and status/authority labels, and active correction-rule support. It collapses the archive's duplicate entry-node aliases only in the display index, retaining the original endpoint IDs in each edge's payload. Confirmed entry-to-entity shortcuts retain their primitive edge IDs and are explicitly marked as display projections.
 
 ```sh
 python3 -m conversation_archive.knowledge_map build --run /path/to/private/organization-run --database data/private-map-v1.sqlite3
@@ -47,11 +47,21 @@ python3 -m conversation_archive.knowledge_map serve --database data/private-map-
 
 Keep real indexes in ignored local storage. The database contains exact private text and answer history; it is not encrypted. Newly created database files are owner-readable/writable only. Inspect parent-directory permissions and keep them out of cloud publishing or public artifacts.
 
-The authoritative-migration implementation reported locally is not in this GitHub baseline. **This adapter does not guess that snapshot's schema or replace it.** A future adapter must validate its version, authority/status, source evidence and correction lifecycle before projecting it into the same retrieval interface. It must not reparse Markdown to recover authority already available structurally.
+For an authoritative machine snapshot, use a separate database path:
+
+```sh
+python3 -m conversation_archive.knowledge_map build-archive --archive /path/to/private/snapshot --database data/private-authoritative-map.sqlite3
+python3 -m conversation_archive.knowledge_map search --database data/private-authoritative-map.sqlite3 --archive /path/to/private/snapshot --query Rowan
+python3 -m conversation_archive.knowledge_map serve --database data/private-authoritative-map.sqlite3 --archive /path/to/private/snapshot --assets data/map-assets
+```
+
+The snapshot validator runs before indexing. Queries watch the manifest and every listed source file; changed or missing inputs require a rebuild. The default view includes observed text and owner-confirmed links. Select **Include derived links** to inspect metadata and retrieval links; they stay labeled `derived` and never become confirmed merely by appearing on the map. Generated links may be numerous, so use the relation filter and partial-result warning when exploring them.
+
+The machine adapter reads the versioned snapshot records directly. It does not reparse Markdown to infer authority or edit the snapshot.
 
 ## Staleness, corrections and rebuild
 
-With `--run`, each query checks the recorded source-file hash. If the source changes or disappears, the map refuses queries and asks for a rebuild. Source checking involves no model call. The running server also rejects a modified/replaced database.
+With `--run` or `--archive`, each query checks its recorded source fingerprint. If the source changes or disappears, the map refuses queries and asks for a rebuild. Source checking involves no model call. The running server also rejects a modified/replaced database.
 
 Record answers and revocations using the existing [reviewed batch workflow](question-batches.md), then build **a new database path** and restart the viewer. Existing different databases are never overwritten. Rebuilding the same unchanged input at the same path returns `already_current`; it does not duplicate entries. Revocation removes support-dependent links from the new projection while retaining rule history and independent support.
 
@@ -67,9 +77,9 @@ These commands provide the same bounded retrieval to an agent without running a 
 ## Design and authority
 
 ```text
-Validated structured organization state (read only)
+Checked organization state OR validated authoritative snapshot (read only)
              │
-    existing graph + active rules
+    original relationships + active rules
              │
        SQLite projection
        nodes / edges / rules / FTS5 / source fingerprint

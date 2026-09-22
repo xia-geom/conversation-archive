@@ -32,7 +32,7 @@ Real exports, master-derived data, structured snapshots, SQLite files, prompts, 
 
 ## Knowledge map
 
-Read [the map guide](docs/knowledge-map.md). Project checked organization state into a new SQLite index; do not invent a migration-snapshot adapter. Watch the source with `--run` or explicitly select historical mode. No data leaves the local viewer, and no map action writes corrections or changes authority.
+Read [the map guide](docs/knowledge-map.md). Project checked organization state or a validated authoritative machine snapshot into a new SQLite index. Watch the source with `--run` or `--archive`, or explicitly select historical mode. Preserve original authority and status labels; display shortcuts are projections with primitive witnesses and rules. No data leaves the local viewer, and no map action writes corrections or changes authority.
 
 ## Validation and routing
 

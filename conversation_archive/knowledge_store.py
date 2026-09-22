@@ -12,10 +12,12 @@ import sqlite3
 import tempfile
 
 from . import organization as org
+from . import machine_archive as archive
 
 VERSION = "1.0"
-STATUSES = ("observed_text", "user_confirmed", "proposed", "rejected")
-KINDS = ("entry", "mention", *sorted(org.KINDS))
+STATUSES = ("observed_text", "user_confirmed", "derived", "proposed", "rejected")
+KINDS = ("entry", "mention", "source", "period_text", "person_role", "topic",
+         "record_kind", "period_bucket", "confirmed_entity", *sorted(org.KINDS))
 MAX_SOURCE_BYTES = 64 * 1024 * 1024
 
 
@@ -101,6 +103,95 @@ def projection(state):
     return {"nodes": sorted(nodes), "edges": sorted(edges), "rules": sorted(rules)}
 
 
+def archive_fingerprint(root):
+    """Watch every immutable snapshot file, not just its manifest."""
+    root = Path(root)
+    manifest = archive.load_json(root / "manifest.json")
+    expected = {f"{name}.jsonl" for name in (*archive.TABLES, "nodes")}
+    if set(manifest.get("files", {})) != expected:
+        raise MapError("Snapshot file inventory is incomplete or unfamiliar")
+    parts = [("manifest.json", file_hash(root / "manifest.json"))]
+    for name in sorted(manifest.get("files", {})):
+        if (root / name).is_symlink():
+            raise MapError("Snapshot source file cannot be a symlink")
+        parts.append((name, file_hash(root / name)))
+    return sha(encoded(parts).encode())
+
+
+def archive_projection(root):
+    """Project a validated machine snapshot without changing its authority labels."""
+    report = archive.validate(root)
+    if report["status"] != "passed":
+        raise MapError("Authoritative snapshot failed validation")
+    records = archive.archive_records(root)
+    source_nodes = archive.load_jsonl(Path(root) / "nodes.jsonl")
+    entries = {e["entry_id"]: e for e in records["entries"]}
+    mentions = {m["mention_id"]: m for m in records["mentions"]}
+    nodes, edges, rules = [], [], []
+    # The archive has both E0001 and entry:E0001 graph aliases. The map uses
+    # one entry node, retaining original endpoint IDs inside edge payloads.
+    def canonical(node_id):
+        if node_id in entries:
+            return "entry:" + node_id
+        if node_id in mentions:
+            return "mention:" + node_id
+        return node_id
+    seen = set()
+    for source in source_nodes:
+        node_id = canonical(source["node_id"])
+        if node_id in seen:
+            continue
+        seen.add(node_id)
+        entry = entries.get(node_id.removeprefix("entry:")) if node_id.startswith("entry:") else None
+        mention = mentions.get(node_id.removeprefix("mention:")) if node_id.startswith("mention:") else None
+        kind = "entry" if entry else "mention" if mention else source["node_type"]
+        label = entry["title"] if entry else source["label"]
+        text = entry["raw_markdown"] if entry else mention["quote"] if mention else ""
+        payload = entry if entry else mention if mention else source
+        nodes.append((node_id, kind, entry["entry_id"] if entry else mention["entry_id"] if mention else "",
+                      label, text, encoded(payload)))
+    for relation in records["relationships"]:
+        payload = dict(relation)
+        payload["evidence"] = json.loads(relation["evidence_json"])
+        payload["rule_ids"] = json.loads(relation["rule_ids_json"])
+        edges.append((relation["relationship_id"], canonical(relation["source_id"]),
+                      canonical(relation["target_id"]), relation["relation"], relation["status"],
+                      relation["authority"], 0, encoded(payload)))
+    entry_mention = defaultdict(list)
+    for relation in records["relationships"]:
+        if (relation["relation"] == "mentions" and relation["source_id"] in entries
+                and relation["target_id"] in mentions):
+            entry_mention[relation["target_id"]].append(relation)
+    shortcuts = defaultdict(list)
+    for relation in records["relationships"]:
+        if (relation["relation"] != "refers_to" or relation["status"] != "user_confirmed"
+                or relation["source_id"] not in mentions):
+            continue
+        mention = mentions[relation["source_id"]]
+        for witness in entry_mention[relation["source_id"]]:
+            if witness["source_id"] == mention["entry_id"]:
+                shortcuts[(mention["entry_id"], relation["target_id"])].append((mention, witness, relation))
+    for (entry_id, entity_id), witnesses in sorted(shortcuts.items()):
+        payload = {"source": entry_id, "target": entity_id, "relation": "refers_to",
+                   "status": "user_confirmed", "authority": "display_projection",
+                   "evidence": [dict(entry_id=m["entry_id"], start=m["start"],
+                                     end=m["end"], quote=m["quote"]) for m, _, _ in witnesses],
+                   "rule_ids": sorted({rid for _, _, r in witnesses for rid in json.loads(r["rule_ids_json"])}),
+                   "derived_from": [edge["relationship_id"] for _, first, second in witnesses
+                                    for edge in (first, second)],
+                   "note": "Display shortcut for entry → mention → confirmed entity; not an additional assertion."}
+        edge_id = "projection:" + sha(encoded(payload).encode())[:32]
+        edges.append((edge_id, "entry:" + entry_id, entity_id, "refers_to",
+                      "user_confirmed", "display_projection", 1, encoded(payload)))
+    events = {e["event_id"]: e for e in records["correction_events"]}
+    for rule in records["correction_rules"]:
+        payload = dict(rule)
+        payload["operation_payload"] = json.loads(rule["payload_json"])
+        payload["event"] = events[rule["event_id"]]
+        rules.append((rule["rule_id"], int(rule["active"]), encoded(payload)))
+    return {"nodes": sorted(nodes), "edges": sorted(edges), "rules": sorted(rules)}
+
+
 SCHEMA = """
 PRAGMA user_version=1;
 PRAGMA foreign_keys=ON;
@@ -120,7 +211,7 @@ CREATE VIRTUAL TABLE search USING fts5(id UNINDEXED, label, text, tokenize='unic
 
 
 def build(run, database):
-    """Read a checked organization snapshot; publish a new owner-readable DB atomically."""
+    """Read a checked organization state; publish a new owner-readable DB."""
     run, database = Path(run).resolve(), Path(database).absolute()
     source = run / "state.json"
     before = file_hash(source)
@@ -134,6 +225,29 @@ def build(run, database):
                 "entry_count": len(state["data"]["entries"]), "node_count": len(records["nodes"]),
                 "edge_count": len(records["edges"]), "rule_count": len(records["rules"]),
                 "authority": "derived_read_only_index", "complete_knowledge_claimed": False}
+    return publish(records, metadata, database, lambda: file_hash(source))
+
+
+def build_archive(root, database):
+    """Index a checked authoritative snapshot; the output is only a view."""
+    root, database = Path(root).resolve(), Path(database).absolute()
+    before = archive_fingerprint(root)
+    records = archive_projection(root)
+    if before != archive_fingerprint(root):
+        raise MapError("Snapshot changed while indexing")
+    manifest = archive.load_json(root / "manifest.json")
+    metadata = {"format_version": VERSION, "source_format": "machine_archive-1.0",
+                "state_sha256": manifest["snapshot_id"], "source_file_sha256": before,
+                "source_path": str(root), "projection_sha256": sha(encoded(records).encode()),
+                "entry_count": len([n for n in records["nodes"] if n[1] == "entry"]),
+                "node_count": len(records["nodes"]), "edge_count": len(records["edges"]),
+                "rule_count": len(records["rules"]), "authority": "derived_read_only_index",
+                "complete_knowledge_claimed": False}
+    return publish(records, metadata, database, lambda: archive_fingerprint(root))
+
+
+def publish(records, metadata, database, current_fingerprint):
+    """Install a verified projection once; refuse a changed existing output."""
     if database.exists() or database.is_symlink():
         if database.is_symlink():
             raise MapError("Database output cannot be a symlink")
@@ -154,7 +268,7 @@ def build(run, database):
             db.executemany("INSERT INTO search VALUES (?,?,?)", [(n[0], n[3], n[4]) for n in records["nodes"]])
             db.commit()
         Store(Path(temp))
-        if before != file_hash(source):
+        if metadata["source_file_sha256"] != current_fingerprint():
             raise MapError("Source changed before index installation")
         with open(temp, "rb") as stream:
             os.fsync(stream.fileno())
@@ -171,10 +285,13 @@ def signature(path):
 
 
 class Store:
-    def __init__(self, database, run=None):
+    def __init__(self, database, run=None, archive_root=None):
         self.path = Path(database).resolve(strict=True)
         self.signature = signature(self.path)
+        if run is not None and archive_root is not None:
+            raise MapError("Choose one watched source")
         self.run = Path(run).resolve() if run is not None else None
+        self.archive_root = Path(archive_root).resolve() if archive_root is not None else None
         with closing(self.connect()) as db:
             if db.execute("PRAGMA user_version").fetchone()[0] != 1:
                 raise MapError("Unsupported map database format")
@@ -214,6 +331,15 @@ class Store:
                 raise MapError("Bound source is unavailable; rebuild or explicitly use snapshot-only mode") from exc
             if current != self.meta["source_file_sha256"]:
                 raise MapError("Source state changed; rebuild the index before continuing")
+        if self.archive_root is not None:
+            if self.meta.get("source_format") != "machine_archive-1.0":
+                raise MapError("Map index does not match an authoritative snapshot")
+            try:
+                current = archive_fingerprint(self.archive_root)
+            except (OSError, ValueError, KeyError) as exc:
+                raise MapError("Bound snapshot is unavailable; rebuild or explicitly use snapshot-only mode") from exc
+            if current != self.meta["source_file_sha256"]:
+                raise MapError("Snapshot changed; rebuild the index before continuing")
 
     def public_metadata(self):
         return {k: v for k, v in self.meta.items() if k != "source_path"}
@@ -225,7 +351,7 @@ class Store:
             hubs = [self.summary(r) for r in db.execute("SELECT * FROM nodes WHERE kind NOT IN ('entry','mention') ORDER BY kind,label LIMIT 20")]
             relations = [r[0] for r in db.execute("SELECT DISTINCT relation FROM edges ORDER BY relation")]
         return {**self.public_metadata(), "kinds": kinds, "hubs": hubs, "relations": relations,
-                "source_watch": self.run is not None, "statuses": list(STATUSES)}
+                "source_watch": self.run is not None or self.archive_root is not None, "statuses": list(STATUSES)}
 
     @staticmethod
     def summary(row):
@@ -288,8 +414,10 @@ class Store:
         if (type(mentions) is not bool or not statuses or len(statuses) != len(set(statuses))
                 or not set(statuses) <= set(STATUSES)):
             raise MapError("Choose distinct supported relationship statuses")
-        if relation and relation not in {"mentions", "refers_to", "associated_with", *org.RELATIONS}:
-            raise MapError("Unknown relationship type")
+        if relation:
+            with closing(self.connect()) as db:
+                if db.execute("SELECT 1 FROM edges WHERE relation=? LIMIT 1", (relation,)).fetchone() is None:
+                    raise MapError("Unknown relationship type")
         focus_node = self.node(focus)
         seen, frontier, selected, truncated = {focus}, {focus}, {}, False
         with closing(self.connect()) as db:
