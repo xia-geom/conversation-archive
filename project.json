@@ -46,18 +46,23 @@
       "next_action": "Validate correction accounting, replay and revocation before claiming full cutover."
     },
     "review_snapshot": {
-      "status": "implemented_local_html_and_checked_review_successors",
+      "status": "implemented_declarative_controls_and_checked_review_successors",
       "guide": "docs/snapshot-review.md",
-      "modules": ["conversation_archive/snapshot_review.py", "conversation_archive/review_html.py"],
+      "design": "docs/flexible-review.md",
+      "skill": ".agents/skills/archive-review/SKILL.md",
+      "modules": ["conversation_archive/snapshot_review.py", "conversation_archive/review_html.py", "conversation_archive/review_controls.py", "conversation_archive/review_identity.py"],
       "help": ["python3", "-m", "conversation_archive.snapshot_review", "--help"],
       "input_format": "machine_archive-1.0 plus optional snapshot-bound supplied cases",
       "review_protocol": "snapshot-review-1.0",
+      "controls_protocol": "review-controls-1.0",
+      "controls": ["choice", "multi_choice", "text", "groups", "visible_when"],
+      "general_forms": "record_only; no arbitrary archive effects",
       "default_questions": 15,
       "automatic_conflict_discovery": false,
       "no_model_calls": true,
       "browser_archive_writes": false,
-      "identity_grouping": "not supported in this UI",
-      "reversal_scope": "review answers and directed-relation dependents; identity-binding dependencies refuse the update"
+      "identity_grouping": "explicit finite groups and unknowns over saved-question mentions; new or displayed existing identities",
+      "reversal_scope": "review answers, supported relation dependencies, and own versioned before-state bindings; unsupported legacy or independently used identities refuse the update"
     },
     "generate_llm_views": {
       "status": "planned",

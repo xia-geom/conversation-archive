@@ -18,11 +18,13 @@ Store relationship origin, review status, evidence, finite scope, and rule depen
 
 ## Organization and interaction
 
-For authoritative-snapshot review, use [snapshot review](docs/snapshot-review.md): local HTML, saved drafts, checked previews, and explicit successors. Prioritize supplied contradictions; identity questions are optional. No semantic discovery or model calls occur. Deferral and reversal cover review answers and supported relation dependencies, not arbitrary legacy bindings.
+Use [snapshot review](docs/snapshot-review.md) and [flexible controls](docs/flexible-review.md) for local HTML, drafts, checked previews, and successors. Prioritize supplied contradictions; identity grouping is optional. General forms record answers only. Reversal covers supported dependencies and this writer's identity before-states, not arbitrary legacy bindings. No semantic discovery or model calls occur.
+
+The optional [review skill](.agents/skills/archive-review/SKILL.md) guides preparation. HTML and agent answers use the same checked writer. Skills grant no permissions. Do not execute question-supplied code or silently turn explanations into corrections.
 
 For the older organization workflow, read active rules, rejected links, and deferred questions first. Preprocess the supplied inventory broadly, then prepare **15 contextual questions by default**, configurable to 10 or 20; do not pad a smaller queue. Include titles, distinguishing excerpts, known references, alternatives, and exact scope. Prepare the entire batch before asking; do not regroup between each answer.
 
-Allow partial groups and unknowns; “not all the same” is not “all different.” Compile only actual user answers into scoped rules. Preview and apply them together. Preserve entry text, remember rejections, and retain revocation dependencies. In the older organization sidecar, mention deferral persists and relation skips remain pending; snapshot review stores deferrals canonically. No silent rule expansion into new snapshots.
+Allow partial groups and unknowns; “not all the same” is not “all different.” Compile only actual user answers into scoped rules. Preview and apply them together. Preserve entry text, remember rejections, and retain revocation dependencies. No silent rule expansion into new snapshots.
 
 ## Writes, cost, and privacy
 
@@ -34,12 +36,12 @@ Real exports, master-derived data, structured snapshots, SQLite files, prompts, 
 
 ## Knowledge map
 
-Read [the map guide](docs/knowledge-map.md). Project checked organization state or a validated authoritative machine snapshot into a new SQLite index. Watch the source with `--run` or `--archive`, or explicitly select historical mode. Preserve original authority and status labels; display shortcuts are projections with primitive witnesses and rules. No data leaves the local viewer, and no map action writes corrections or changes authority.
+Read [the map guide](docs/knowledge-map.md). Project checked organization state or validated machine snapshots into a new SQLite index. Preserve source authority, status, witnesses, and rules. The local viewer does not transmit data or write corrections.
 
 ## Validation and routing
 
 Run `python3 -m unittest discover -s tests -v`. Test behavior, not just schema validity: exact provenance, missing/changed inputs, replay, interruption, scopes, revoked dependencies, and preservation of prior corrections. Test real archive changes locally; use synthetic examples in Git and CI.
 
-For migration, read [the machine archive guide](docs/machine-archive.md) and [the SQLite import guide](docs/structured-archive.md). Versioned JSON/JSONL snapshots are the authoritative structured store after cutover; SQLite and Markdown are rebuildable projections. Preserve exact evidence, IDs, rule history and authority labels, and do not promote generated links during import.
+For migration, read [the machine archive guide](docs/machine-archive.md) and [the SQLite import guide](docs/structured-archive.md). Versioned snapshots are authoritative after accepted cutover; SQLite and Markdown are rebuildable projections. Never promote generated links during import.
 
 [Task map](project.json) · [Documentation](docs/README.md) · [Migration acceptance](docs/migration-acceptance.md)
