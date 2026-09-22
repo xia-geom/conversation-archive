@@ -20,7 +20,7 @@ The implementation uses the existing authoritative machine snapshot and its corr
 | Correct a review answer | Replace or reopen an answer made through this interface. Preserve old answer payloads and revoke dependent review/directed-relation support. |
 | Not implemented here | Automatic contradiction discovery; native PDF/Notes/Gemini import; semantic matching; medical interpretation; identity grouping in this UI; arbitrary legacy correction reversal. |
 
-An empty conflict queue means no conflict cases were supplied or retained, not that the archive is contradiction-free. The interface exposes prepared coverage and migration exceptions; it does not certify coverage against live applications. Evidence is checked against preserved **entries**, not reverified against inaccessible original medical pages. Source IDs remain source IDs: the renderer does not invent a file link or event date.
+An empty conflict queue means no conflict cases were supplied or retained, not that the archive is contradiction-free. Prepared coverage and migration-exception counts are recorded in `session.json`; the dashboard shows the prepared-entry/question counts. Neither certifies coverage against live applications. Evidence is checked against preserved **entries**, not reverified against inaccessible original medical pages. Source IDs remain source IDs: the renderer does not invent a file link or event date.
 
 Identity cards are available in All questions for discovery and deferral. Existing identity-binding tools remain separate. Do not resume a large identity-classification exercise merely because those questions exist.
 
@@ -46,7 +46,7 @@ python3 -m conversation_archive.snapshot_review preview \
   --output /path/to/private/review/preview-01
 ```
 
-Read `preview-01/preview.html`. It shows each selected outcome, exact evidence, and withdrawn/dependent decisions. A displayed preview is not an applied change.
+Read `preview-01/preview.html`. It shows each selected outcome, exact evidence, withdrawn/dependent decisions, and the number of prepared cases retained for later sessions. A displayed preview is not an applied change.
 
 ```sh
 python3 -m conversation_archive.snapshot_review apply \
@@ -60,6 +60,8 @@ python3 -m conversation_archive.snapshot_review apply \
 
 Use the successor explicitly for the next session or rebuild with the existing machine-archive/knowledge-map tools. No global CURRENT pointer is advanced. Independently created successors are branches, not implicitly merged updates. An unchanged repeat returns `already_applied`; a different reply against a stale snapshot is rejected without deleting the reply. Prepare a new session/preview after applying a partial batch. There is no silent rebasing by question number.
 
+Unanswered supplied cases are retained in the successor as **unresolved candidates**, so the next preparation does not need the old `--cases` file. Retaining their queue is not a review decision or permission to assert the proposed relationships. Only explicitly answered cards create answer history. Existing identity questions stay in their original registry. Before any application, the frozen session itself remains the record of the prepared queue.
+
 ## Supplied cases
 
 An optional `--cases` JSON file has exactly `protocol`, `basis_snapshot_id`, and `cases`. The protocol is `snapshot-review-1.0`; the basis must identify the selected snapshot. Each case has `kind`, `title`, `prompt`, `reason`, `evidence`, and `depends_on`. Evidence is a list of exact `entry_id`, `start`, `end`, `quote` records; offsets count Unicode characters, not UTF-8 bytes. The preparer adds an entry-text hash. A conflict needs at least two distinct assertion occurrences. A relationship additionally names `source_entry_id`, `target_entry_id`, and one supported directed `relation`.
@@ -72,10 +74,11 @@ Titles, reasons, comparison context, and case grouping are **proposals**. They a
 
 The versioned session/answer protocol is separate from the unchanged machine-table schema. New operations are stored in the existing `correction_rules.payload_json`, with the protocol named explicitly:
 
+- `review_queue`: retained cases with `unresolved_candidate` authority. This is queue bookkeeping, not an owner confirmation or independent evidence.
 - `review_answer`: the frozen case, selected outcome, verbatim note, and finite support dependencies. The corresponding event preserves the complete structured reply and reviewer label.
 - `review_revoke`: the previous support and its affected dependent rules. Old payloads/events remain; only active status and the current interpretation projection change.
 
-A confirmed/rejected directed relation becomes a separate `snapshot_review_answer` relationship with its own rule. Generated or proposed links are never promoted in place. A conflict classification records the review judgment only; it does not create a medical fact or choose which account is true. `insufficient` waits for evidence; `defer` remains out of the default pending batch until explicitly reopened. Blank/unanswered questions remain untouched.
+A confirmed/rejected directed relation becomes a separate `snapshot_review_answer` relationship with its own rule. Generated or proposed links are never promoted in place. A conflict classification records the review judgment only; it does not create a medical fact or choose which account is true. `insufficient` waits for evidence; `defer` remains out of the default pending batch until explicitly reopened. Blank/unanswered questions do not acquire an answer.
 
 Replacing an answer requires its displayed prior rule ID and a checked preview. Revocation follows explicit dependencies. Independent relationship support remains. If the dependency closure reaches an identity binding or another unsupported operation, the **entire update is refused** rather than guessing an undo. This is not general legacy-archive revocation, nor a completed authority-migration acceptance claim.
 
@@ -91,10 +94,10 @@ The HTML is self-contained, uses text-only rendering and a restrictive content-s
 
 ```sh
 python3 -m unittest discover -s tests -v
-python3 -m unittest discover -s tests -p test_snapshot_review.py -v
+python3 -m unittest discover -s tests -p 'test_snapshot_review*.py' -v
 ```
 
-Tests cover actual saved-question mention lookup, exact evidence, conflict-first ordering, multiple witnesses per case, invalid/blank/duplicate answers, source preservation, preview gating, replay, persistent deferral, replacement, dependent invalidation, independent support, stale sessions, chronology cycles, and interrupted publication. They test review mechanics, not automatic contradiction-detection accuracy.
+Tests cover actual saved-question mention lookup, exact evidence, conflict-first ordering, multiple witnesses per case, invalid/blank/duplicate answers, source preservation, preview gating, replay, persistent deferral, replacement, dependent invalidation, independent support, stale sessions, chronology cycles, and interrupted publication. Lifecycle regressions check that unanswered supplied cases survive partial application, recorded dependencies cannot silently change, and unsupported binding-dependent revocations leave the record untouched. These test review mechanics, not automatic contradiction-detection accuracy.
 
 The browser check uses invented data and the already pinned Playwright dependency from the interface workflow:
 
