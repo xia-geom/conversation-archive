@@ -44,6 +44,8 @@ The output directory must not exist. Snapshots are immutable; corrections create
 
 A correction decision names its exact basis snapshot and finite mention scope. Schema 1.0 supports `bind_mentions`; it refuses unknown mentions, entries, dependencies, conflicting identities, stale snapshots, and empty scope.
 
+When a decision answers a saved identity question, add its `question_id` to the `bind_mentions` operation. The importer verifies that every selected mention appeared on that question. The unresolved question leaves the successor snapshot only when every displayed mention has an identity assignment; a partial answer keeps the remainder open. The question and its original context remain available in the parent snapshot, while the rule payload retains the answered question ID. A skipped or unanswered question creates no correction.
+
 ```json
 {
   "version": "1.0",

@@ -199,6 +199,16 @@ def validate(root: Path) -> dict:
         entry = entries.get(mention["entry_id"])
         if not entry or entry["raw_markdown"][mention["start"]:mention["end"]] != mention["quote"]:
             errors.append(f"mention evidence mismatch {mention['mention_id']}")
+    mention_index = {m["mention_id"]: m for m in records["mentions"]}
+    for question in records["unresolved_questions"]:
+        try:
+            evidence = json.loads(question["evidence_json"])
+            if not evidence or any(mention_index[item["mention_id"]]["entry_id"] != item["entry_id"]
+                                   or mention_index[item["mention_id"]]["kind"] != question["kind"]
+                                   for item in evidence):
+                errors.append(f"question evidence mismatch {question['question_id']}")
+        except (KeyError, TypeError, json.JSONDecodeError):
+            errors.append(f"invalid question evidence {question['question_id']}")
     if manifest.get("migration_exceptions"):
         warnings.append(f"{len(manifest['migration_exceptions'])} unresolved migration exception(s)")
     return {"status": "failed" if errors else "passed", "errors": errors, "warnings": warnings,
@@ -250,14 +260,19 @@ def apply_correction(root: Path, decision_path: Path, output: Path,
     if not all(isinstance(decision[k], str) and decision[k].strip() for k in ("decision_id", "actor", "answer")):
         raise ArchiveError("Correction requires decision ID, actor, and verbatim answer")
     records = archive_records(root); nodes = load_jsonl(root / "nodes.jsonl")
+    if decision["decision_id"] in {event["event_id"] for event in records["correction_events"]}:
+        raise ArchiveError("Correction decision ID already exists")
     mentions = {m["mention_id"]: m for m in records["mentions"]}; entries = {e["entry_id"] for e in records["entries"]}
+    questions = {q["question_id"]: q for q in records["unresolved_questions"]}
+    referenced_questions = set()
     rules = {r["rule_id"] for r in records["correction_rules"]}; relationships = {r["relationship_id"] for r in records["relationships"]}
     event_ordinal = max((e["ordinal"] for e in records["correction_events"]), default=-1) + 1
     records["correction_events"].append({"event_id": decision["decision_id"], "ordinal": event_ordinal,
                                           "actor": decision["actor"], "answer": decision["answer"]})
     node_ids = {n["node_id"] for n in nodes}
     for ordinal, op in enumerate(decision["operations"]):
-        if set(op) != {"op", "rule_id", "depends_on", "kind", "entity_id", "entity_label", "entry_ids", "mention_ids"} or op["op"] != "bind_mentions":
+        required_op = {"op", "rule_id", "depends_on", "kind", "entity_id", "entity_label", "entry_ids", "mention_ids"}
+        if set(op) not in (required_op, required_op | {"question_id"}) or op["op"] != "bind_mentions":
             raise ArchiveError("Only explicit bind_mentions corrections are supported in schema 1.0")
         if op["rule_id"] in rules or not set(op["depends_on"]) <= rules:
             raise ArchiveError("Duplicate rule or unknown dependency")
@@ -271,6 +286,14 @@ def apply_correction(root: Path, decision_path: Path, output: Path,
             selected.append(m)
         if not selected or not set(op["entry_ids"]) <= entries:
             raise ArchiveError("Correction has empty or unknown scope")
+        if "question_id" in op:
+            question = questions.get(op["question_id"])
+            if not question or question["kind"] != op["kind"]:
+                raise ArchiveError("Correction cites an unknown or mismatched question")
+            question_mentions = {item["mention_id"] for item in json.loads(question["evidence_json"])}
+            if not set(op["mention_ids"]) <= question_mentions:
+                raise ArchiveError("Correction extends beyond the cited question")
+            referenced_questions.add(op["question_id"])
         if op["entity_id"] not in {e["entity_id"] for e in records["entities"]}:
             records["entities"].append({"entity_id": op["entity_id"], "kind": op["kind"],
                                          "label": op["entity_label"], "authority": "owner_confirmed"})
@@ -289,6 +312,10 @@ def apply_correction(root: Path, decision_path: Path, output: Path,
         records["correction_rules"].append({"rule_id":op["rule_id"],"event_id":decision["decision_id"],"ordinal":ordinal,
             "operation":"bind_mentions","active":1,"payload_json":json.dumps(op,ensure_ascii=False,sort_keys=True)})
         rules.add(op["rule_id"])
+    records["unresolved_questions"] = [q for q in records["unresolved_questions"]
+        if q["question_id"] not in referenced_questions or not all(
+            mentions[item["mention_id"]]["entity_id"] is not None
+            for item in json.loads(q["evidence_json"]))]
     output.mkdir(parents=True, mode=0o700)
     for table, rows in records.items():
         dump_jsonl(output/f"{table}.jsonl",sorted(rows,key=lambda r:tuple(r[k] for k in PRIMARY[table])))

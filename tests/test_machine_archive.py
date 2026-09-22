@@ -9,6 +9,7 @@ from conversation_archive import organization as o
 from conversation_archive.machine_archive import apply_correction, build_sqlite, snapshot, validate
 from conversation_archive.organization_inputs import index_markdown
 from conversation_archive.structured_archive import migrate, render
+from conversation_archive.structured_archive import ArchiveError
 
 
 MASTER = """# Master
@@ -91,6 +92,40 @@ class MachineArchiveTests(unittest.TestCase):
             report=validate(archive)
             self.assertEqual("failed",report["status"])
             self.assertTrue(any("hash mismatch" in x for x in report["errors"]))
+
+    def test_question_scope_and_completion_are_recorded(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _, database = self.prepare(root)
+            db = sqlite3.connect(database)
+            mentions = [dict(zip([c[1] for c in db.execute("PRAGMA table_info(mentions)")], row))
+                        for row in db.execute("SELECT * FROM mentions WHERE label='Rowan'")]
+            evidence = [{"mention_id": m["mention_id"], "entry_id": m["entry_id"]} for m in mentions]
+            db.execute("INSERT INTO unresolved_questions VALUES (?,?,?,?,?,?)",
+                       ("Q-rowan", "person", "rowan", "Are these references the same person?",
+                        json.dumps(evidence), "unresolved_candidate"))
+            db.commit(); db.close()
+            first = root / "first"
+            snapshot(database, first, "1")
+            manifest = json.loads((first / "manifest.json").read_text())
+            decision = {"version": "1.0", "decision_id": "owner-rowan-question",
+                        "basis_snapshot_id": manifest["snapshot_id"], "actor": "Invented owner",
+                        "answer": "All shown references are Rowan.", "operations": [{
+                            "op": "bind_mentions", "rule_id": "rowan-question-rule", "depends_on": [],
+                            "kind": "person", "entity_id": "entity:person:rowan", "entity_label": "Rowan",
+                            "entry_ids": sorted({m["entry_id"] for m in mentions}),
+                            "mention_ids": [m["mention_id"] for m in mentions],
+                            "question_id": "Q-rowan"}]}
+            decision_file = root / "decision.json"
+            decision_file.write_text(json.dumps(decision))
+            second = root / "second"
+            self.assertEqual(apply_correction(first, decision_file, second, "2")["counts"]["unresolved_questions"], 0)
+            rules = [json.loads(line) for line in (second / "correction_rules.jsonl").read_text().splitlines()]
+            self.assertEqual(json.loads(rules[-1]["payload_json"])["question_id"], "Q-rowan")
+            decision["operations"][0]["mention_ids"].append("outside-question")
+            decision_file.write_text(json.dumps(decision))
+            with self.assertRaises(ArchiveError):
+                apply_correction(first, decision_file, root / "invalid", "2")
 
 
 if __name__ == "__main__": unittest.main()
