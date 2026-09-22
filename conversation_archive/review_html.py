@@ -133,6 +133,7 @@ def render_preview(receipt):
     esc = lambda value: html.escape(str(value))
     text = _head('Checked decision preview') + '<h1>Checked decision preview</h1><p>No changes have been applied.</p>'
     text += '<p>Basis snapshot: ' + esc(receipt['basis_snapshot_id']) + '</p>'
+    text += '<p>Retain ' + esc(receipt.get('retained_proposals', 0)) + ' prepared cases for future sessions. Unanswered cases remain proposals; retaining them does not confirm or review them.</p>'
     for item in receipt['impact']:
         text += '<article class="card"><h2>' + esc(item['title']) + '</h2><p>' + esc(item['kind']) + ': <strong>' + esc(item['choice']) + '</strong></p>'
         text += '<p>' + esc(item['note']) + '</p>'
