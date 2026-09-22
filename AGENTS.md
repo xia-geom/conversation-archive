@@ -18,7 +18,9 @@ Store relationship origin, review status, evidence, finite scope, and rule depen
 
 ## Organization and interaction
 
-For authoritative-snapshot review, use [snapshot review](docs/snapshot-review.md): local HTML, saved drafts, checked previews, and explicit successors. Prioritize supplied contradictions; identity questions are optional. No semantic discovery or model calls occur. Deferral and reversal cover review answers and supported relation dependencies, not arbitrary legacy bindings.
+For authoritative-snapshot review, use [snapshot review](docs/snapshot-review.md) and [flexible controls](docs/flexible-review.md): local HTML, saved drafts, checked previews, and explicit successors. Prioritize supplied contradictions; identity questions are optional. The reviewer makes no model calls or semantic discoveries. General forms record answers only. Identity grouping uses exact displayed mention IDs and checked finite bindings; replacement/reversal covers this writer's stored before-states and supported dependencies, not arbitrary legacy bindings or unrestricted entity merges.
+
+Use the optional [archive-review skill](.agents/skills/archive-review/SKILL.md) for question preparation and approved draft compilation. HTML and agent-assisted answers use the same structured contract and checked writer. Skills do not grant data-transfer or write permission. Never execute code supplied by question JSON or silently translate free text into source facts. Do not regenerate a bespoke interactive application per batch when reusable controls suffice.
 
 For the older organization workflow, read active rules, rejected links, and deferred questions first. Preprocess the supplied inventory broadly, then prepare **15 contextual questions by default**, configurable to 10 or 20; do not pad a smaller queue. Include titles, distinguishing excerpts, known references, alternatives, and exact scope. Prepare the entire batch before asking; do not regroup between each answer.
 

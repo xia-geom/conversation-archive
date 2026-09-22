@@ -1,32 +1,18 @@
 # Snapshot review: local HTML, checked decisions
 
-[Agent contract](../AGENTS.md) · [Machine archive](machine-archive.md) · [Older organization batches](question-batches.md)
+[Agent contract](../AGENTS.md) · [Flexible controls and design](flexible-review.md) · [Machine archive](machine-archive.md) · [Older batches](question-batches.md)
 
-## Design audit and decision
+## What the reviewer does
 
-The audited baseline is `df4d16c94a2739b71f63bd18c44eb30dec75ad6e`. It can record directed relationship assertions, but its contextual batch writer targets the older organization sidecar. Relation deferrals can recur there; the direct machine correction CLI cannot reverse a relationship decision. Saved machine questions contain mention references, not necessarily ready-to-render quote cards. A new HTML heading alone does not repair these interface and lifecycle gaps.
+Read a validated machine snapshot and prepare one offline dashboard with a searchable queue and batches of 15 (adjustable from 1 to 20). Supplied potential conflicts come first, directed relationships next, general forms next. Identity questions are optional; selecting the Identity type includes them in the current batch.
 
-Use one offline review dashboard with a complete searchable **prepared** queue and manageable batches. Default to 15, adjustable from 1 to 20. Supplied potential contradictions come first, ordinary proposed relationships second; optional identity questions do not block the main queue. Several assertion occurrences may appear in one explicitly supplied conflict case. Grouping the display does not establish event identity or merge entries.
+The renderer shows exact entry quotations, expandable preserved entries, metadata, recorded source references, prior answers, and history. It does not invent links or verify inaccessible original medical pages. An empty conflict queue means no cases were supplied or retained, not that an archive is contradiction-free.
 
-The implementation uses the existing authoritative machine snapshot and its correction tables. It does not create another editable master, reuse the unrelated organization state as authority, or give the read-only knowledge-map server write permissions.
+The same checked writer handles structured answers regardless of whether they came from HTML, a hand-authored file, or an authorized agent-assisted client. See [the flexible design](flexible-review.md) for general forms, grouping, and the optional skill. There is no second editable master or browser permission to write the archive directly.
 
-## Implemented scope and remaining boundaries
+## Prepare
 
-| Capability | Scope |
-| --- | --- |
-| Read | Validated machine archive 1.0, saved identity questions, supported proposed directed relations, and optional supplied conflict cases. |
-| Review | Side-by-side exact entry quotations, full preserved entries, stored metadata/references, search, pagination, explicit choices, notes, draft save/restore, and review-answer history. |
-| Apply | Checked preview followed by explicit application to a new snapshot; originals and old snapshots are not rewritten. |
-| Correct a review answer | Replace or reopen an answer made through this interface. Preserve old answer payloads and revoke dependent review/directed-relation support. |
-| Not implemented here | Automatic contradiction discovery; native PDF/Notes/Gemini import; semantic matching; medical interpretation; identity grouping in this UI; arbitrary legacy correction reversal. |
-
-An empty conflict queue means no conflict cases were supplied or retained, not that the archive is contradiction-free. Prepared coverage and migration-exception counts are recorded in `session.json`; the dashboard shows the prepared-entry/question counts. Neither certifies coverage against live applications. Evidence is checked against preserved **entries**, not reverified against inaccessible original medical pages. Source IDs remain source IDs: the renderer does not invent a file link or event date.
-
-Identity cards are available in All questions for discovery and deferral. Existing identity-binding tools remain separate. Do not resume a large identity-classification exercise merely because those questions exist.
-
-## Local workflow
-
-Run from the repository checkout. Paths below are placeholders for private local directories; never use real data in Git or CI.
+Run from the repository checkout. These paths are placeholders; real archives, sessions, prompts, and answers stay outside Git.
 
 ```sh
 python3 -m conversation_archive.snapshot_review prepare \
@@ -34,9 +20,19 @@ python3 -m conversation_archive.snapshot_review prepare \
   --output /path/to/private/review/session-01 --size 15
 ```
 
-Open `session-01/review.html` locally. The session also contains `session.json` and an empty `answers.template.json`. No answer is preselected. Preparation does not count as review.
+Optional `--cases /path/to/private/cases.json` accepts exactly `protocol`, `basis_snapshot_id`, and `cases`. The protocol is `snapshot-review-1.0`; the basis must match the selected snapshot. Each case contains `kind`, `title`, `prompt`, `reason`, `evidence`, and `depends_on`. Evidence names exact `entry_id`, `start`, `end`, and `quote` values; offsets count Unicode characters, not bytes.
 
-Use Save draft to download a resumable draft; Restore draft accepts only this session. Drafts stay in memory until downloaded, with an unsaved-change warning. Nothing is kept in browser localStorage. Export answers produces a strict response document after an explicit reviewer label and at least one choice. Review choices and notes are copied exactly; no model interprets the reply.
+A `conflict` needs at least two distinct assertion occurrences. A `relationship` additionally names `source_entry_id`, `target_entry_id`, and a supported directed `relation`. A `form` adds a versioned declarative `form` as documented in [flexible-review.md](flexible-review.md). Identity controls are derived from the existing source-question/mention registry, not fabricated mention IDs.
+
+Titles, comparison context, and grouped cases remain proposals. Dependencies name explicit support rules, not mere thematic overlap. Inactive dependencies block substantive acceptance. Duplicate quotations do not become independent corroboration. Private cases must not be sent to a remote model without separate authorization.
+
+## Review and save
+
+Open `session-01/review.html`. The folder also contains `session.json` and `answers.template.json`. Prepared rows freeze their control specifications and source scope. Nothing is preselected, and preparing or saving is not reviewing or applying.
+
+Save draft retains all unfinished fields and notes, even when no outcome was selected. Restore is session-scoped. Drafts stay in memory until explicitly downloaded, with an unsaved-change warning; no localStorage is used. Export answers includes only explicit outcomes and their permitted visible field values. Text is preserved without semantic parsing. Grouping assigns each displayed reference once to a group or Unknown; it does not classify unseen references.
+
+## Preview
 
 ```sh
 python3 -m conversation_archive.snapshot_review preview \
@@ -46,7 +42,9 @@ python3 -m conversation_archive.snapshot_review preview \
   --output /path/to/private/review/preview-01
 ```
 
-Read `preview-01/preview.html`. It shows each selected outcome, exact evidence, withdrawn/dependent decisions, and the number of prepared cases retained for later sessions. A displayed preview is not an applied change.
+Inspect `preview-01/preview.html`: outcomes, exact values/evidence, proposed identity bindings, withdrawn decisions/dependencies, and pending cases retained. General forms record an answer only, not a change to medical data. Confirming a disagreement does not decide which source is true. A preview is not an applied update.
+
+## Apply an explicit answer
 
 ```sh
 python3 -m conversation_archive.snapshot_review apply \
@@ -58,51 +56,30 @@ python3 -m conversation_archive.snapshot_review apply \
   --snapshot-version local-v2 --confirm-user-answer
 ```
 
-Use the successor explicitly for the next session or rebuild with the existing machine-archive/knowledge-map tools. No global CURRENT pointer is advanced. Independently created successors are branches, not implicitly merged updates. An unchanged repeat returns `already_applied`; a different reply against a stale snapshot is rejected without deleting the reply. Prepare a new session/preview after applying a partial batch. There is no silent rebasing by question number.
+The command recomputes the plan, verifies the exact preview, stages and validates the successor, rechecks source hashes, then publishes a complete directory. It does not edit originals or advance a global CURRENT pointer. Select the successor explicitly or rebuild retrieval with existing machine-archive/knowledge-map tools. Independently created successors are branches, not an automatically merged archive.
 
-Unanswered supplied cases are retained in the successor as **unresolved candidates**, so the next preparation does not need the old `--cases` file. Retaining their queue is not a review decision or permission to assert the proposed relationships. Only explicitly answered cards create answer history. Existing identity questions stay in their original registry. Before any application, the frozen session itself remains the record of the prepared queue.
+Replay of an unchanged submitted event returns `already_applied`. Stale different answers are refused without deleting the draft. After applying a partial batch, prepare a new session/preview. No automatic rebase by question number occurs. An advisory output lock coordinates these writers, not unrelated tools or multiple archives.
 
-## Supplied cases
+## Decisions, continuity, and reversal
 
-An optional `--cases` JSON file has exactly `protocol`, `basis_snapshot_id`, and `cases`. The protocol is `snapshot-review-1.0`; the basis must identify the selected snapshot. Each case has `kind`, `title`, `prompt`, `reason`, `evidence`, and `depends_on`. Evidence is a list of exact `entry_id`, `start`, `end`, `quote` records; offsets count Unicode characters, not UTF-8 bytes. The preparer adds an entry-text hash. A conflict needs at least two distinct assertion occurrences. A relationship additionally names `source_entry_id`, `target_entry_id`, and one supported directed `relation`.
+Existing correction tables remain canonical. `review_queue` stores retained unresolved candidates; it is not owner confirmation. `review_answer` stores the exact frozen case, chosen outcome, values when present, note, and finite dependencies. `review_revoke` preserves the target and affected support history. Old events/payloads stay available.
 
-Titles, reasons, comparison context, and case grouping are **proposals**. They are not evidence of comparability. Use the prompt/reason to identify the alleged disagreement and unresolved subject, date, unit, or report-version questions. Preserve attribution and qualifications in the actual excerpts; expanding the complete entry remains available.
+A directed answer creates its own confirmed/rejected projection rather than promoting a generated edge in place. Identity grouping creates finite `bind_mentions` operations with an explicit `review-identity-1.0` before-state and a dependent `refers_to` projection. Generic forms record values without changing entities or fact fields. Old scalar sessions remain valid but cannot acquire new grouping actions without preparation of a new checked session.
 
-`depends_on` names explicit comparison-support rules. It must not be inferred from mere thematic overlap. Unknown or inactive support blocks substantive acceptance. Exact duplicates of an evidence occurrence are rejected rather than counted as corroboration. Do not send private case text to a remote model without separate transfer authorization.
+Unanswered supplied cases survive the successor as proposals. Deferral stays out of the default pending queue until reopened. Insufficient evidence remains distinct from no answer. Partial identity groupings preserve unknown references and the source question; complete groupings retain the question definition in history.
 
-## Decisions and authority
+Replace/reopen supported review decisions using their displayed previous rule ID. The writer withdraws explicit dependent support and restores its own reversible identity bindings. It refuses arbitrary legacy bindings, independent identity support, external entity uses, and mutually invalidating batches rather than guessing an undo. These limits are listed in the preview and [design guide](flexible-review.md); this is not unrestricted entity merging or a completed migration-acceptance claim.
 
-The versioned session/answer protocol is separate from the unchanged machine-table schema. New operations are stored in the existing `correction_rules.payload_json`, with the protocol named explicitly:
+## Privacy and verification
 
-- `review_queue`: retained cases with `unresolved_candidate` authority. This is queue bookkeeping, not an owner confirmation or independent evidence.
-- `review_answer`: the frozen case, selected outcome, verbatim note, and finite support dependencies. The corresponding event preserves the complete structured reply and reviewer label.
-- `review_revoke`: the previous support and its affected dependent rules. Old payloads/events remain; only active status and the current interpretation projection change.
-
-A confirmed/rejected directed relation becomes a separate `snapshot_review_answer` relationship with its own rule. Generated or proposed links are never promoted in place. A conflict classification records the review judgment only; it does not create a medical fact or choose which account is true. `insufficient` waits for evidence; `defer` remains out of the default pending batch until explicitly reopened. Blank/unanswered questions do not acquire an answer.
-
-Replacing an answer requires its displayed prior rule ID and a checked preview. Revocation follows explicit dependencies. Independent relationship support remains. If the dependency closure reaches an identity binding or another unsupported operation, the **entire update is refused** rather than guessing an undo. This is not general legacy-archive revocation, nor a completed authority-migration acceptance claim.
-
-## Preservation, failure handling, and privacy
-
-The complete expected snapshot file set, hashes, sizes, quotations, displayed metadata, response scope, prior decisions, and chronology are checked. Preview and apply recompute the same plan. A changed receipt or answer requires another preview. Cross-dependent answers in one batch are rejected when they would invalidate each other.
-
-Application uses the existing SQLite schema and snapshot builder in a private staging directory, preserves source node authority, validates the successor, checks the source again, then publishes the complete directory. An advisory output lock coordinates this workflow's writers; it is not a universal lock for unrelated tools. Originals are never opened for writing. A crash before publication does not install a partial successor; an interrupted published operation can be checked and replayed. There is no multi-archive transaction or automatic pointer update.
-
-The HTML is self-contained, uses text-only rendering and a restrictive content-security policy, and makes no model/network requests. Drafts and exported answers are sensitive local files, not encrypted storage. Keep all real sessions, previews, snapshots, and browser downloads outside Git. Codex can build/test the code with synthetic records; private semantic review remains local unless separately authorized.
-
-## Tests
+The self-contained HTML uses text-only rendering, restricted content security policy, and no remote assets, model calls, or network requests. Saved pages and downloads are sensitive files, not encrypted storage. Reusable code/tests belong in Git; real data does not. Local directory placement alone does not rule out cloud sync or model transfer.
 
 ```sh
 python3 -m unittest discover -s tests -v
-python3 -m unittest discover -s tests -p 'test_snapshot_review*.py' -v
-```
-
-Tests cover actual saved-question mention lookup, exact evidence, conflict-first ordering, multiple witnesses per case, invalid/blank/duplicate answers, source preservation, preview gating, replay, persistent deferral, replacement, dependent invalidation, independent support, stale sessions, chronology cycles, and interrupted publication. Lifecycle regressions check that unanswered supplied cases survive partial application, recorded dependencies cannot silently change, and unsupported binding-dependent revocations leave the record untouched. These test review mechanics, not automatic contradiction-detection accuracy.
-
-The browser check uses invented data and the already pinned Playwright dependency from the interface workflow:
-
-```sh
 python3 tools/snapshot_review_browser_smoke.py --output data/snapshot-review-browser
+python3 tools/flexible_review_browser_smoke.py --output data/flexible-review-browser
 ```
 
-It checks pagination, draft round trips, structured answer export, inert hostile text, external-request absence, and a narrow viewport. `--memory` is available where administrator policy blocks local-file navigation; that mode explicitly reports that file navigation was not tested. Do not weaken browser policies to run a test.
+Tests cover original scalar behavior, evidence/hashes, replay, stale answers, partial queues, deferral, replacement, dependency reversal, interruptions, flexible fields, and grouping. Browser tests use invented data. `--memory` explicitly reports local-file navigation as untested when administrator policy blocks it. Do not weaken browser policy to make a test pass.
+
+Not implemented: automatic contradiction discovery, native PDF/Notes/Gemini adapters in this reviewer, medical interpretation, arbitrary legacy correction reversal, live chat parsing, direct browser writes, or automatic personal-archive updates.
