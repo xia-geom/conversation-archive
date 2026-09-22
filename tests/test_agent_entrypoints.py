@@ -46,7 +46,7 @@ class AgentEntrypointTests(unittest.TestCase):
 
     def test_migration_implementation_is_not_full_acceptance(self):
         task = self.project["tasks"]["migrate_authority"]
-        self.assertEqual(task["status"], "implemented_schema_1_0_binding_only_acceptance_incomplete")
+        self.assertEqual(task["status"], "implemented_binding_and_directed_relation_decisions_acceptance_incomplete")
         self.assertIn("conversation_archive/machine_archive.py", task["modules"])
         self.assertIsNotNone(task["help"])
         self.assertEqual(self.project["tasks"]["generate_llm_views"]["status"], "planned")

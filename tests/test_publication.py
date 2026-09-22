@@ -120,6 +120,6 @@ class PublicationTests(unittest.TestCase):
         self.assertEqual(meta['publication']['workflow_and_migration_development'], 'explicitly_deferred')
         # Migration code arrived after alpha preparation; existence is not full acceptance.
         self.assertEqual(meta['tasks']['migrate_authority']['status'],
-                         'implemented_schema_1_0_binding_only_acceptance_incomplete')
+                         'implemented_binding_and_directed_relation_decisions_acceptance_incomplete')
         self.assertFalse(meta['tasks']['raw_store']['automatic_master_update'])
         self.assertIn('server settings', (ROOT / 'docs/public-alpha.md').read_text())

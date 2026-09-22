@@ -127,5 +127,59 @@ class MachineArchiveTests(unittest.TestCase):
             with self.assertRaises(ArchiveError):
                 apply_correction(first, decision_file, root / "invalid", "2")
 
+    def test_relation_decision_is_separate_from_generated_link_and_rejects_cycles(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            master, database = self.prepare(root)
+            before = master.read_bytes()
+            first = root / "first"
+            snapshot(database, first, "1")
+            entries = {row["entry_id"]: row for row in
+                       (json.loads(line) for line in (first / "entries.jsonl").read_text().splitlines())}
+            def evidence(entry_id, quote):
+                start = entries[entry_id]["raw_markdown"].index(quote)
+                return {"entry_id": entry_id, "start": start, "end": start + len(quote), "quote": quote}
+            witnesses = [evidence("E0001", "Rowan was there."),
+                         evidence("E0002", "I remembered Rowan.")]
+            manifest = json.loads((first / "manifest.json").read_text())
+            def decision(basis, decision_id, source, target, relation, result, spans):
+                return {"version": "1.0", "decision_id": decision_id,
+                        "basis_snapshot_id": basis, "actor": "Invented owner",
+                        "answer": "Synthetic relationship answer.", "operations": [{
+                            "op": "assert_relation", "rule_id": decision_id + "-rule", "depends_on": [],
+                            "source_entry_id": source, "target_entry_id": target,
+                            "relation": relation, "decision": result, "evidence": spans}]}
+            decision_file = root / "decision.json"
+            bad = decision(manifest["snapshot_id"], "bad-quotation", "E0001", "E0002",
+                           "continues", "confirm", [dict(witnesses[0], quote="invented"), witnesses[1]])
+            decision_file.write_text(json.dumps(bad))
+            with self.assertRaisesRegex(ArchiveError, "exact entry quotation"):
+                apply_correction(first, decision_file, root / "bad", "2")
+            decision_file.write_text(json.dumps(decision(manifest["snapshot_id"], "first-relation",
+                "E0001", "E0002", "precedes", "confirm", witnesses)))
+            second = root / "second"
+            self.assertEqual(apply_correction(first, decision_file, second, "2")["status"], "passed")
+            relations = [json.loads(line) for line in (second / "relationships.jsonl").read_text().splitlines()]
+            self.assertEqual(next(r for r in relations if r["relationship_id"] == "derived-one")["status"], "derived")
+            assertion = next(r for r in relations if r["origin"] == "machine_archive_relation_answer")
+            self.assertEqual((assertion["authority"], assertion["status"]), ("owner_confirmed", "user_confirmed"))
+            self.assertEqual(json.loads(assertion["evidence_json"]), witnesses)
+            second_id = json.loads((second / "manifest.json").read_text())["snapshot_id"]
+            decision_file.write_text(json.dumps(decision(second_id, "duplicate-relation",
+                "E0001", "E0002", "precedes", "confirm", witnesses)))
+            with self.assertRaisesRegex(ArchiveError, "already has an owner decision"):
+                apply_correction(second, decision_file, root / "duplicate", "3")
+            decision_file.write_text(json.dumps(decision(second_id, "reverse-relation",
+                "E0002", "E0001", "precedes", "confirm", witnesses)))
+            with self.assertRaisesRegex(ArchiveError, "cycle"):
+                apply_correction(second, decision_file, root / "cycle", "3")
+            decision_file.write_text(json.dumps(decision(second_id, "rejected-relation",
+                "E0002", "E0001", "continues", "reject", witnesses)))
+            third = root / "third"
+            self.assertEqual(apply_correction(second, decision_file, third, "3")["status"], "passed")
+            self.assertTrue(any(r["status"] == "rejected" for r in
+                (json.loads(line) for line in (third / "relationships.jsonl").read_text().splitlines())))
+            self.assertEqual(master.read_bytes(), before)
+
 
 if __name__ == "__main__": unittest.main()

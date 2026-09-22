@@ -12,6 +12,7 @@ import shutil
 import sqlite3
 from pathlib import Path
 
+from . import organization as org
 from .structured_archive import ArchiveError, connect, create_schema, render as render_sqlite
 
 VERSION = "1.0"
@@ -74,6 +75,27 @@ def row_records(db: sqlite3.Connection, table: str) -> list[dict]:
     fields = [x[1] for x in db.execute(f"PRAGMA table_info({table})")]
     rows = [dict(zip(fields, row)) for row in db.execute(f"SELECT * FROM {table}")]
     return sorted(rows, key=lambda row: tuple(row[k] for k in PRIMARY[table]))
+
+
+def confirmed_precedes_cycle(relationships: list[dict]) -> bool:
+    graph = {}
+    for relation in relationships:
+        if (relation["relation"] == "precedes" and relation["authority"] == "owner_confirmed"
+                and relation["status"] == "user_confirmed"):
+            graph.setdefault(relation["source_id"], set()).add(relation["target_id"])
+    visiting, visited = set(), set()
+    def visit(node):
+        if node in visiting:
+            return True
+        if node in visited:
+            return False
+        visiting.add(node)
+        if any(visit(next_node) for next_node in graph.get(node, ())):
+            return True
+        visiting.remove(node)
+        visited.add(node)
+        return False
+    return any(visit(node) for node in graph)
 
 
 def relationship_nodes(records: dict, derived_graph: Path | None) -> list[dict]:
@@ -195,6 +217,22 @@ def validate(root: Path) -> dict:
                 errors.append(f"explicit relationship evidence mismatch {rel['relationship_id']}")
         if rel["authority"].startswith("generated") and rel["status"] in {"user_confirmed", "accepted"}:
             errors.append(f"derived relation promoted on import {rel['relationship_id']}")
+        if rel["origin"] == "machine_archive_relation_answer":
+            if (rel["authority"] != "owner_confirmed" or rel["status"] not in {"user_confirmed", "rejected"}
+                    or rel["relation"] not in org.RELATIONS or rel["source_id"] == rel["target_id"]):
+                errors.append(f"invalid answered relation {rel['relationship_id']}")
+            if not isinstance(evidence, list) or {item.get("entry_id") for item in evidence if isinstance(item, dict)} != {rel["source_id"], rel["target_id"]}:
+                errors.append(f"relation evidence scope mismatch {rel['relationship_id']}")
+            else:
+                for item in evidence:
+                    entry = entries.get(item["entry_id"])
+                    start, end, quote = item.get("start"), item.get("end"), item.get("quote")
+                    if (not entry or type(start) is not int or type(end) is not int or not isinstance(quote, str)
+                            or not quote.strip() or not 0 <= start < end <= len(entry["raw_markdown"])
+                            or entry["raw_markdown"][start:end] != quote):
+                        errors.append(f"relation quotation mismatch {rel['relationship_id']}")
+    if confirmed_precedes_cycle(records["relationships"]):
+        errors.append("confirmed precedes relationships form a cycle")
     for mention in records["mentions"]:
         entry = entries.get(mention["entry_id"])
         if not entry or entry["raw_markdown"][mention["start"]:mention["end"]] != mention["quote"]:
@@ -266,15 +304,55 @@ def apply_correction(root: Path, decision_path: Path, output: Path,
     questions = {q["question_id"]: q for q in records["unresolved_questions"]}
     referenced_questions = set()
     rules = {r["rule_id"] for r in records["correction_rules"]}; relationships = {r["relationship_id"] for r in records["relationships"]}
+    active_rules = {r["rule_id"] for r in records["correction_rules"] if r["active"]}
     event_ordinal = max((e["ordinal"] for e in records["correction_events"]), default=-1) + 1
     records["correction_events"].append({"event_id": decision["decision_id"], "ordinal": event_ordinal,
                                           "actor": decision["actor"], "answer": decision["answer"]})
     node_ids = {n["node_id"] for n in nodes}
     for ordinal, op in enumerate(decision["operations"]):
+        if op.get("op") == "assert_relation":
+            required_relation = {"op", "rule_id", "depends_on", "source_entry_id", "target_entry_id",
+                                 "relation", "decision", "evidence"}
+            if set(op) != required_relation or op["decision"] not in {"confirm", "reject"}:
+                raise ArchiveError("Invalid relation decision operation")
+            if (op["rule_id"] in rules or not set(op["depends_on"]) <= active_rules
+                    or not op["source_entry_id"] in entries or not op["target_entry_id"] in entries
+                    or op["source_entry_id"] == op["target_entry_id"] or op["relation"] not in org.RELATIONS):
+                raise ArchiveError("Unknown relation scope, dependency, or duplicate rule")
+            entry_index = {e["entry_id"]: e for e in records["entries"]}
+            if (not isinstance(op["evidence"], list) or
+                    {item.get("entry_id") for item in op["evidence"] if isinstance(item, dict)} !=
+                    {op["source_entry_id"], op["target_entry_id"]}):
+                raise ArchiveError("Relation decision must cite both entries")
+            for item in op["evidence"]:
+                if not isinstance(item, dict) or set(item) != {"entry_id", "start", "end", "quote"}:
+                    raise ArchiveError("Invalid relation evidence span")
+                start, end, quote = item["start"], item["end"], item["quote"]
+                if (type(start) is not int or type(end) is not int or not 0 <= start < end <= len(entry_index[item["entry_id"]]["raw_markdown"])
+                        or not isinstance(quote, str) or not quote.strip()
+                        or entry_index[item["entry_id"]]["raw_markdown"][start:end] != quote):
+                    raise ArchiveError("Relation evidence is not an exact entry quotation")
+            if any(r["source_id"] == op["source_entry_id"] and r["target_id"] == op["target_entry_id"]
+                   and r["relation"] == op["relation"] and r["authority"] == "owner_confirmed"
+                   and r["origin"] == "machine_archive_relation_answer" for r in records["relationships"]):
+                raise ArchiveError("Relation already has an owner decision")
+            rid = "relation-answer-" + digest_json([decision["decision_id"], op["rule_id"]])[:24]
+            records["relationships"].append({"relationship_id": rid,
+                "source_id": op["source_entry_id"], "target_id": op["target_entry_id"],
+                "relation": op["relation"], "authority": "owner_confirmed",
+                "status": "user_confirmed" if op["decision"] == "confirm" else "rejected",
+                "evidence_json": json.dumps(op["evidence"], ensure_ascii=False, sort_keys=True),
+                "rule_ids_json": json.dumps([op["rule_id"]]), "origin": "machine_archive_relation_answer"})
+            records["correction_rules"].append({"rule_id": op["rule_id"], "event_id": decision["decision_id"],
+                "ordinal": ordinal, "operation": "assert_relation", "active": 1,
+                "payload_json": json.dumps(op, ensure_ascii=False, sort_keys=True)})
+            rules.add(op["rule_id"])
+            active_rules.add(op["rule_id"])
+            continue
         required_op = {"op", "rule_id", "depends_on", "kind", "entity_id", "entity_label", "entry_ids", "mention_ids"}
         if set(op) not in (required_op, required_op | {"question_id"}) or op["op"] != "bind_mentions":
             raise ArchiveError("Only explicit bind_mentions corrections are supported in schema 1.0")
-        if op["rule_id"] in rules or not set(op["depends_on"]) <= rules:
+        if op["rule_id"] in rules or not set(op["depends_on"]) <= active_rules:
             raise ArchiveError("Duplicate rule or unknown dependency")
         selected=[]
         for mid in op["mention_ids"]:
@@ -312,10 +390,13 @@ def apply_correction(root: Path, decision_path: Path, output: Path,
         records["correction_rules"].append({"rule_id":op["rule_id"],"event_id":decision["decision_id"],"ordinal":ordinal,
             "operation":"bind_mentions","active":1,"payload_json":json.dumps(op,ensure_ascii=False,sort_keys=True)})
         rules.add(op["rule_id"])
+        active_rules.add(op["rule_id"])
     records["unresolved_questions"] = [q for q in records["unresolved_questions"]
         if q["question_id"] not in referenced_questions or not all(
             mentions[item["mention_id"]]["entity_id"] is not None
             for item in json.loads(q["evidence_json"]))]
+    if confirmed_precedes_cycle(records["relationships"]):
+        raise ArchiveError("Confirmed precedes relationships would form a cycle")
     output.mkdir(parents=True, mode=0o700)
     for table, rows in records.items():
         dump_jsonl(output/f"{table}.jsonl",sorted(rows,key=lambda r:tuple(r[k] for k in PRIMARY[table])))

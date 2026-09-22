@@ -76,6 +76,26 @@ python3 -m conversation_archive.machine_archive correct \
 
 The successor records the parent snapshot, correction event, rule, confirmed entity, changed mention assignments, and supported relationship edges. It copies unchanged evidence bytes rather than rewriting entries.
 
+For a directed relationship answer, use `assert_relation`. It requires exact quoted spans from both entries and an explicit `confirm` or `reject` decision. Supported relationship types are `continues`, `revises`, `precedes`, `responds_to`, and `reported_cause`. The owner answer is recorded in the correction event; the supplied quotations establish what was reviewed, not by themselves the truth of the relationship.
+
+```json
+{
+  "op": "assert_relation",
+  "rule_id": "confirmed-continuation-example",
+  "depends_on": [],
+  "source_entry_id": "E0001",
+  "target_entry_id": "E0002",
+  "relation": "continues",
+  "decision": "confirm",
+  "evidence": [
+    {"entry_id": "E0001", "start": 120, "end": 135, "quote": "exact text here"},
+    {"entry_id": "E0002", "start": 240, "end": 255, "quote": "exact text here"}
+  ]
+}
+```
+
+The offsets and quotes above are illustrative: a real decision must match its snapshot exactly. The operation creates a separate owner-supported assertion and never promotes or rewrites a generated retrieval link. A rejection is retained with `rejected` status. Duplicate owner decisions for the same directed relation, stale dependencies, unsupported relation types, mismatched quotes, and cycles among confirmed `precedes` links are refused. Revocation is not yet supported in the machine snapshot; keep an incorrect decision as a documented issue rather than attempting an unreviewed file edit.
+
 ## Rebuild retrieval and views
 
 ```sh

@@ -82,7 +82,7 @@
       ]
     },
     "migrate_authority": {
-      "status": "implemented_schema_1_0_binding_only_acceptance_incomplete",
+      "status": "implemented_binding_and_directed_relation_decisions_acceptance_incomplete",
       "guide": "docs/machine-archive.md",
       "modules": [
         "conversation_archive/machine_archive.py",
@@ -103,7 +103,7 @@
       "help": null
     },
     "knowledge_map": {
-      "status": "implemented_read_only_organization_projection",
+      "status": "implemented_read_only_organization_and_machine_archive_projection",
       "guide": "docs/knowledge-map.md",
       "modules": [
         "conversation_archive/knowledge_map.py",
@@ -116,7 +116,7 @@
         "conversation_archive.knowledge_map",
         "--help"
       ],
-      "input_format": "organization-1.0",
+      "input_format": "organization-1.0 or machine_archive-1.0",
       "retrieval": "SQLite FTS5 and bounded graph neighborhoods",
       "viewer": "local Cytoscape.js; explicit pinned asset installation",
       "no_model_calls": true,
