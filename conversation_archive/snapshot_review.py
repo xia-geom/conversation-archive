@@ -159,6 +159,16 @@ def _review_state(records):
     require(len(rule_ids) == len(records["correction_rules"]), "Duplicate correction rule IDs")
     active, cases, history = {}, {}, []
     for rule in records["correction_rules"]:
+        if rule["operation"] == "review_queue":
+            payload = json.loads(rule["payload_json"])
+            require(payload.get("protocol") == PROTOCOL
+                    and payload.get("authority") == "unresolved_candidate"
+                    and isinstance(payload.get("cases"), list), "Invalid retained question queue")
+            for candidate in payload["cases"]:
+                case = normalize_case(candidate, entries)
+                require(case["kind"] != "identity", "Identity questions stay in their existing registry")
+                cases["RQ-" + digest(case)] = case
+            continue
         if rule["operation"] != "review_answer":
             continue
         payload = json.loads(rule["payload_json"])
@@ -167,6 +177,8 @@ def _review_state(records):
         qid = "RQ-" + digest(case)
         require(payload.get("question_id") == qid and payload.get("choice") in CHOICES[case["kind"]]
                 and payload["choice"] != "reopen", "Invalid recorded answer")
+        require(payload["depends_on"] == ([] if payload["choice"] == "defer" else case["depends_on"]),
+                "Recorded comparison dependencies changed")
         require(set(payload["depends_on"]) <= rule_ids, "Missing recorded review dependency")
         cases[qid] = case
         history.append({"question_id": qid, "rule_id": rule["rule_id"], "event_id": rule["event_id"],
@@ -388,6 +400,18 @@ def plan(archive, session_path, answers_path):
     records["correction_events"].append({"event_id": event_id,
         "ordinal": max((e["ordinal"] for e in records["correction_events"]), default=-1) + 1,
         "actor": reply["actor"], "answer": encoded(reply).decode("utf-8")})
+    # Carry unanswered supplied cases into the successor as proposals, not owner answers.
+    # Otherwise a partial batch would lose every unhandled external conflict case.
+    known_cases = _review_state(records)[1]
+    added_cases = [q["case"] for qid, q in questions.items()
+                   if qid not in known_cases and q["case"]["kind"] != "identity"]
+    if added_cases:
+        records["correction_rules"].append({"rule_id": "RQK-" + digest([event_id, added_cases]),
+            "event_id": event_id, "ordinal": len(records["correction_rules"]),
+            "operation": "review_queue", "active": 1,
+            "payload_json": json.dumps({"protocol": PROTOCOL, "authority": "unresolved_candidate",
+                "session_id": session["session_id"], "basis_snapshot_id": manifest["snapshot_id"],
+                "cases": added_cases, "depends_on": []}, ensure_ascii=False, sort_keys=True)})
     for answer in reply["answers"]:
         require(isinstance(answer, dict) and set(answer) == {
             "question_id", "choice", "note", "previous_rule_id"}, "Unexpected individual-answer fields")
@@ -443,7 +467,8 @@ def plan(archive, session_path, answers_path):
                "basis_snapshot_id": manifest["snapshot_id"], "basis_fingerprint": fingerprint,
                "session_sha256": digest(session), "answers_sha256": digest(reply),
                "plan_sha256": digest(records), "impact": impact,
-               "unanswered": len(questions) - len(seen), "source_text_changed": False}
+               "unanswered": len(questions) - len(seen), "retained_proposals": len(added_cases),
+               "source_text_changed": False}
     return receipt, records, manifest
 
 
