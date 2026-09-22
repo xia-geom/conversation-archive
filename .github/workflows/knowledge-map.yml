@@ -5,15 +5,23 @@ on:
     paths:
       - 'conversation_archive/knowledge_*.py'
       - 'conversation_archive/map_web/**'
+      - 'conversation_archive/snapshot_review.py'
+      - 'conversation_archive/review_html.py'
       - 'tests/test_knowledge_map.py'
+      - 'tests/test_snapshot_review.py'
       - 'tools/knowledge_map_browser_smoke.py'
+      - 'tools/snapshot_review_browser_smoke.py'
       - '.github/workflows/knowledge-map.yml'
   pull_request:
     paths:
       - 'conversation_archive/knowledge_*.py'
       - 'conversation_archive/map_web/**'
+      - 'conversation_archive/snapshot_review.py'
+      - 'conversation_archive/review_html.py'
       - 'tests/test_knowledge_map.py'
+      - 'tests/test_snapshot_review.py'
       - 'tools/knowledge_map_browser_smoke.py'
+      - 'tools/snapshot_review_browser_smoke.py'
       - '.github/workflows/knowledge-map.yml'
   workflow_dispatch:
 permissions:
@@ -33,19 +41,25 @@ jobs:
         with:
           python-version: '3.13'
       - name: Check storage and local API contracts
-        run: python -m unittest discover -s tests -p test_knowledge_map.py -v
+        run: |
+          python -m unittest discover -s tests -p test_knowledge_map.py -v
+          python -m unittest discover -s tests -p test_snapshot_review.py -v
       - name: Install pinned browser test dependency and verified public library
         run: |
           python -m pip install 'playwright==1.57.0'
           python -m playwright install --with-deps chromium
           python -m conversation_archive.knowledge_map assets --output data/map-assets --download
       - name: Exercise real browser on invented records only
-        run: python tools/knowledge_map_browser_smoke.py --assets data/map-assets --output data/map-browser
+        run: |
+          python tools/knowledge_map_browser_smoke.py --assets data/map-assets --output data/map-browser
+          python tools/snapshot_review_browser_smoke.py --output data/snapshot-review-browser
       - name: Retain synthetic review evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: knowledge-map-synthetic-browser
-          path: data/map-browser/
+          path: |
+            data/map-browser/
+            data/snapshot-review-browser/
           retention-days: 7
           if-no-files-found: warn
