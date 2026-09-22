@@ -18,11 +18,11 @@ Store relationship origin, review status, evidence, finite scope, and rule depen
 
 ## Organization and interaction
 
-For review of authoritative snapshots, read [snapshot review](docs/snapshot-review.md). Use its local HTML queue, saved drafts, checked preview, and explicit successor application; do not create a competing organization authority. Prioritize supplied potential contradictions, not blanket identity classification. Identity cards are optional, and empty queues never certify absence of contradictions. This workflow makes no model calls and cannot discover semantic conflicts itself. Reversal is scoped to its review answers and supported relation dependencies, not arbitrary legacy bindings.
+For authoritative-snapshot review, use [snapshot review](docs/snapshot-review.md): local HTML, saved drafts, checked previews, and explicit successors. Prioritize supplied contradictions; identity questions are optional. No semantic discovery or model calls occur. Deferral and reversal cover review answers and supported relation dependencies, not arbitrary legacy bindings.
 
 For the older organization workflow, read active rules, rejected links, and deferred questions first. Preprocess the supplied inventory broadly, then prepare **15 contextual questions by default**, configurable to 10 or 20; do not pad a smaller queue. Include titles, distinguishing excerpts, known references, alternatives, and exact scope. Prepare the entire batch before asking; do not regroup between each answer.
 
-Allow partial groups and unknowns; “not all the same” is not “all different.” Compile only actual user answers into scoped rules. Preview and apply them together. Preserve entry text, remember rejections, and retain revocation dependencies. In the older organization sidecar, mention deferral persists and relation skips remain pending; the snapshot-review protocol stores its own deferrals canonically. No silent rule expansion into new snapshots.
+Allow partial groups and unknowns; “not all the same” is not “all different.” Compile only actual user answers into scoped rules. Preview and apply them together. Preserve entry text, remember rejections, and retain revocation dependencies. In the older organization sidecar, mention deferral persists and relation skips remain pending; snapshot review stores deferrals canonically. No silent rule expansion into new snapshots.
 
 ## Writes, cost, and privacy
 
