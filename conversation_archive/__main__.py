@@ -1,4 +1,4 @@
-"""Small, explicit commands: inventory, normalize, validate, inspect."""
+"""Maintain organized Markdown; preserve explicit import and inspection commands."""
 
 import argparse
 import json
@@ -13,6 +13,8 @@ from .pipeline import normalize, validate, inspect_record, write_json
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__)
     sub = p.add_subparsers(dest="command", required=True)
+    from .reconcile_cli import add_parser, dispatch
+    add_parser(sub)
     for name in ("inventory", "normalize"):
         a = sub.add_parser(name)
         a.add_argument("--config", required=True, type=Path)
@@ -22,24 +24,17 @@ def main(argv=None):
     a.add_argument("--report", type=Path)
     a = sub.add_parser("inspect")
     a.add_argument("--dataset", required=True, type=Path)
-    a.add_argument(
-        "--kind",
-        choices=("messages", "conversations", "attachments"),
-        default="messages",
-    )
+    a.add_argument("--kind", choices=("messages", "conversations", "attachments"), default="messages")
     g = a.add_mutually_exclusive_group(required=True)
     g.add_argument("--record-id")
     g.add_argument("--line", type=int)
-    from .reconcile_cli import add_parser, dispatch
-
-    add_parser(sub)
     args = p.parse_args(argv)
     try:
-        if args.command == "reconcile":
+        if args.command in {"organize", "reconcile"}:
             value = dispatch(args)
             if isinstance(value, str):
                 print(value, end="")
-                return 0
+                return getattr(value, "exit_code", 0)
             print(json.dumps(value, ensure_ascii=False, indent=2))
             return 1 if value.get("status") == "failed" else 0
         if args.command == "inventory":
@@ -48,14 +43,7 @@ def main(argv=None):
                 raise FormatError("Inventory output exists; choose a new path")
             args.output.parent.mkdir(parents=True, exist_ok=True)
             write_json(args.output, value)
-            print(
-                json.dumps(
-                    {
-                        "source_payloads": len(value["sources"]),
-                        "output": str(args.output),
-                    }
-                )
-            )
+            print(json.dumps({"source_payloads": len(value["sources"]), "output": str(args.output)}))
             return 0
         if args.command == "normalize":
             value = normalize(args.config, args.output)
@@ -63,9 +51,7 @@ def main(argv=None):
             value = validate(args.dataset)
             if args.report:
                 if args.report.resolve().is_relative_to(args.dataset.resolve()):
-                    raise FormatError(
-                        "Write a fresh validation report outside the immutable dataset directory"
-                    )
+                    raise FormatError("Write a fresh validation report outside the immutable dataset directory")
                 if args.report.exists():
                     raise FormatError("Report exists; choose a new report path")
                 args.report.parent.mkdir(parents=True, exist_ok=True)
@@ -77,16 +63,8 @@ def main(argv=None):
         print(json.dumps(value, ensure_ascii=False, indent=2))
         return 0 if value["status"] == "passed" else 1
     except (OSError, ValueError, KeyError, TypeError, BadZipFile) as e:
-        # Avoid dumping malformed source text into terminal logs.
-        print(
-            "Error: "
-            + (
-                str(e)
-                if isinstance(e, FormatError)
-                else type(e).__name__ + "; check paths and input format"
-            ),
-            file=sys.stderr,
-        )
+        print("Error: " + (str(e) if isinstance(e, FormatError)
+              else type(e).__name__ + "; check paths and input format"), file=sys.stderr)
         return 2
 
 

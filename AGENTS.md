@@ -1,45 +1,37 @@
 # Agent operating contract
 
-Build an evidence-preserving archive, not an ever-growing summary. The user's current task defines scope. Start here; use [project.json](project.json) to route to one relevant guide.
+Maintain **one organized Markdown file containing the key information from chats**, useful to the user and ChatGPT. Start with [ARCHITECTURE.md](ARCHITECTURE.md), then the relevant part of [the workflow](docs/workflow.md). Do not turn this into a database, graph, or general review-application project.
 
-## Start and finish
+## Work from actual evidence and current state
 
-1. Inspect the branch, diff, implemented CLI help, and existing checkpoints. Preserve uncommitted work. A local report is not proof that its implementation is in this checkout.
-2. Read only the task guide and relevant code. Reuse completed work and prior scoped corrections; do not restart extraction, reset budgets, or reread the whole archive by default.
-3. Make the smallest useful change. Test it, inspect the diff for private data, then report changed files, commands actually run, results, and remaining gaps. Do not claim a merge, render, or migration without its evidence.
+Inspect the branch, diff, CLI help, current document, authorized inputs, and existing checkpoints. Preserve uncommitted work. Do not restart completed extraction or reset budgets. Repository changes do not authorize reading or changing a neighboring personal archive.
 
-## Data authority
+Keep original exports unchanged. Read exact source passages through the existing packet/inspection tools; do not substitute an earlier summary. Preserve attribution, language, event-date uncertainty, message IDs and source locators. Separate owner reports, pasted quotations, plans, dreams, assistant suggestions, and interpretations. A timestamp is not an event date; similarity is not identity or causation.
 
-The target is **authoritative structured entries, assertions, and correction history; rebuildable SQLite retrieval; optional Markdown and LLM-generated views**. The legacy Markdown reconciler still exists. Follow [migration acceptance](docs/migration-acceptance.md) before switching a real archive's authority. Do not replace uncommitted local migration code with a new implementation.
+## Produce useful Markdown
 
-Original exports and the migration-input master are read-only. Preserve exact text, languages, IDs, source spans, branch memberships, missing media, and prior confirmations. A message ID alone is not a global identity. Separate exact indexing from inferred people, themes, event dates, and roles.
+Organize by meaningful subjects and, where helpful, chronology. Keep self-contained entries with stable IDs, important qualifications, exact supporting excerpts and source references. Do not copy every chat or reduce useful information to vague summaries. Connect related information in the document without constructing a separate entity registry.
 
-Store relationship origin, review status, evidence, finite scope, and rule dependencies separately. User text, pasted quotes, drafts, dreams, assistant suggestions, and interpretations are different evidence categories. A timestamp is not automatically an event date. Similarity is not identity or causation; a valid quotation does not prove its interpretation. Generated navigation and summaries never become independent evidence.
+Compare with the current Markdown before adding anything. Preserve manual edits and prior corrections; record later corrections without erasing earlier evidence. Do not promote repeated assistant claims into corroborated facts. Surface contradictions that change a meaningful account, not every uncertain link. Ask contextual questions in small batches only when necessary; unanswered or deferred items stay unresolved.
 
-## Organization and interaction
+Use the same reviewed patch contract for answers collected in chat or any optional interface. A proposed answer is not an approved decision. Do not automatically apply extraction candidates. Apply only authorized reviewed edits with the checked writer and show the diff first.
 
-For authoritative-snapshot review, use [snapshot review](docs/snapshot-review.md): local HTML, saved drafts, checked previews, and explicit successors. Prioritize supplied contradictions; identity questions are optional. No semantic discovery or model calls occur. Deferral and reversal cover review answers and supported relation dependencies, not arbitrary legacy bindings.
+## Updates and privacy
 
-For the older organization workflow, read active rules, rejected links, and deferred questions first. Preprocess the supplied inventory broadly, then prepare **15 contextual questions by default**, configurable to 10 or 20; do not pad a smaller queue. Include titles, distinguishing excerpts, known references, alternatives, and exact scope. Prepare the entire batch before asking; do not regroup between each answer.
+New collections use `organize prepare --document ...`; no SQL, machine-snapshot migration or separate correction-report files are required. Resume old `--master` runs under their existing contract; see [compatibility](docs/compatibility.md). Do not delete or silently migrate real snapshots, decisions, databases or exports when code is retired.
 
-Allow partial groups and unknowns; “not all the same” is not “all different.” Compile only actual user answers into scoped rules. Preview and apply them together. Preserve entry text, remember rejections, and retain revocation dependencies. In the older organization sidecar, mention deferral persists and relation skips remain pending; snapshot review stores deferrals canonically. No silent rule expansion into new snapshots.
+Run the check before application, retain expected hashes, and recover incomplete installation before proceeding. The document lock coordinates this writer, not arbitrary editors. Keep history and replay idempotent.
 
-## Writes, cost, and privacy
+Real exports, Markdown, state, prompts, drafts and generated views stay outside Git. Local files are not automatically offline model processing. Obtain explicit authorization before sending contents to a remote model or uploading to ChatGPT. Preserve existing transfer and cumulative-budget gates; do not retry ambiguous paid attempts blindly. No credentials in code, reports or logs.
 
-Use the existing checked writer for the relevant layer. Reject stale hashes and conflicting assignments. Keep replay idempotent and interrupted changes recoverable. The organization lock is not a shared lock on the legacy master writer; do not imply multi-file atomicity.
+## Challenge the design
 
-Candidate workers do not allocate permanent master IDs or authorize their own findings. Retain attempts, receipts, unknown usage, and cumulative limits; never retry blindly after an ambiguous failure. Read-only Codex settings are not hermetic read isolation. Live calls need explicit data-transfer authorization; no credentials in code or logs.
+Do not agree with architectural proposals merely because they are stated confidently. Test the primary reader's actual search → entry → context → source path before adding infrastructure. Poor access is a design defect, not something an agent should compensate for. Do not assume Markdown indexes better than JSONL without a real test; Markdown is the requested deliverable, not a claim of universal retrieval superiority.
 
-Real exports, master-derived data, structured snapshots, SQLite files, prompts, answers, and views stay in ignored local storage. Repository work does not authorize edits to a neighboring personal archive. For separately authorized integration, read that archive's instructions and metadata without requesting redundant permission. Do not change visibility, publish private content, or force-push.
+Keep one editorial authority and only necessary bookkeeping. Prefer removing an unnecessary feature over disguising it behind another adapter. Do not add a second index, schema registry, service, skill or representation without a demonstrated workflow need.
 
-## Knowledge map
+## Verify and report
 
-Read [the map guide](docs/knowledge-map.md). Project checked organization state or a validated authoritative machine snapshot into a new SQLite index. Watch the source with `--run` or `--archive`, or explicitly select historical mode. Preserve original authority and status labels; display shortcuts are projections with primitive witnesses and rules. No data leaves the local viewer, and no map action writes corrections or changes authority.
+Run `python3 -m unittest discover -s tests -v` and the Markdown demo. Use synthetic fixtures in Git and CI. Test quotation/provenance checks, source preservation, manual edits, changed exports, stale drafts, replay, interruption and no SQL dependency—not only valid schemas.
 
-## Validation and routing
-
-Run `python3 -m unittest discover -s tests -v`. Test behavior, not just schema validity: exact provenance, missing/changed inputs, replay, interruption, scopes, revoked dependencies, and preservation of prior corrections. Test real archive changes locally; use synthetic examples in Git and CI.
-
-For migration, read [the machine archive guide](docs/machine-archive.md) and [the SQLite import guide](docs/structured-archive.md). Versioned JSON/JSONL snapshots are the authoritative structured store after cutover; SQLite and Markdown are rebuildable projections. Preserve exact evidence, IDs, rule history and authority labels, and do not promote generated links during import.
-
-[Task map](project.json) · [Documentation](docs/README.md) · [Migration acceptance](docs/migration-acceptance.md)
+Report actual changes, removed/consolidated files, commands run, observed test results, commit/PR state, and limits. Do not claim a merge, live-model evaluation, ChatGPT retrieval test, or personal-data update without evidence.
