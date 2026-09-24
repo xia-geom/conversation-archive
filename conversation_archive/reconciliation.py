@@ -5,6 +5,8 @@ was read, or that a personal account is true, merely because it was generated.
 """
 
 from collections import Counter, defaultdict
+from contextlib import contextmanager
+import difflib
 from datetime import datetime, timezone
 import hashlib
 import json
@@ -61,6 +63,113 @@ def atomic_text(path, text):
     finally:
         if os.path.exists(tmp):
             os.unlink(tmp)
+
+
+def read_document(path):
+    """Preserve UTF-8 and newline bytes; a manual edit is the next update's baseline."""
+    return Path(path).read_bytes().decode("utf-8")
+
+
+def output_names(inv):
+    if "output_files" not in inv:
+        return FILES  # Resume old inventories; never silently migrate them.
+    names = inv["output_files"]
+    if names != [Path(inv["master"]).name] or not names[0].endswith(".md"):
+        raise FormatError("Single-document run has an invalid output identity")
+    return tuple(names)
+
+
+@contextmanager
+def document_lock(document):
+    import fcntl
+    root = document.parent / ".state" / "locks"
+    if (document.parent / ".state").is_symlink() or root.is_symlink():
+        raise FormatError("Refusing a symlinked state or lock directory")
+    root.mkdir(parents=True, exist_ok=True, mode=0o700)
+    path = root / (digest(str(document.resolve())) + ".lock")
+    fd = os.open(path, os.O_CREAT | os.O_RDWR | getattr(os, "O_NOFOLLOW", 0), 0o600)
+    try:
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError as exc:
+            raise FormatError("Another writer holds this Markdown document") from exc
+        yield
+    finally:
+        os.close(fd)
+
+
+def init_document(path, title="Organized conversations"):
+    path = Path(path)
+    if path.suffix != ".md" or not title.strip() or "\n" in title or "\r" in title:
+        raise FormatError("Use a Markdown filename and a one-line title")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    text = ("# " + title + "\n\n"
+            "This document contains selected, source-attributed information—not a complete transcript.\n\n"
+            "## Key information\n\n"
+            "<!-- Add supported entries with stable E0001-style IDs here. -->\n\n"
+            "## Open questions\n\n"
+            "No review has been completed yet.\n")
+    with path.open("x", encoding="utf-8", newline="\n") as stream:
+        os.chmod(path, 0o600)
+        stream.write(text)
+        stream.flush()
+        os.fsync(stream.fileno())
+    return {"status": "initialized", "document": str(path), "source_reviewed": False}
+
+
+def draft(run, edits, output):
+    """Compile explicit source-reviewed edits, never summarize or approve candidates."""
+    inv = checked_inventory(run)
+    names = output_names(inv)
+    if len(names) != 1:
+        raise FormatError("Draft helper requires an explicit single-document run")
+    doc = load(edits) if not isinstance(edits, dict) else edits
+    required = {"batch_id", "document_sha256", "decision_ids", "finding_dispositions", "patches"}
+    if not isinstance(doc, dict) or not required <= set(doc) <= required | {"resolution_revision"}:
+        raise FormatError("Edits need batch ID, document hash, decisions, dispositions, and patches")
+    document = Path(inv["master"])
+    before = read_document(document)
+    if digest(before) != doc["document_sha256"]:
+        raise FormatError("Markdown changed; prepare edits against the current document")
+    after = patch_text(before, doc["patches"])
+    batch = {k: doc[k] for k in ("batch_id", "decision_ids", "finding_dispositions")}
+    if "resolution_revision" in doc:
+        batch["resolution_revision"] = doc["resolution_revision"]
+    batch["files"] = {names[0]: {"before_sha256": digest(before), "after_sha256": digest(after),
+                                 "patches": doc["patches"]}}
+    checked, _, _ = check(run, batch)
+    if checked["errors"]:
+        raise FormatError("Proposed Markdown failed evidence or preservation checks")
+    output = Path(output)
+    if (output.resolve() == document.resolve() or output.resolve().is_relative_to(Path(inv["dataset"]))
+            or output.resolve() == Path(run).resolve() / "inventory.json"):
+        raise FormatError("Write the draft to a new path outside preserved inputs")
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with output.open("x", encoding="utf-8") as stream:
+        os.chmod(output, 0o600)
+        json.dump(batch, stream, ensure_ascii=False, indent=2)
+        stream.write("\n")
+    return {"status": "draft_checked_not_applied", "batch": str(output), "document_changed": False}
+
+
+class Preview(str):
+    def __new__(cls, text, failed):
+        result = super().__new__(cls, text)
+        result.exit_code = 1 if failed else 0
+        return result
+
+
+def render_check(run, batch=None):
+    result, before, after = check(run, batch)
+    lines = ["# Markdown update preview", "", "Not applied. This checks structure and provenance, not factual truth.", ""]
+    for name in before:
+        diff = "".join(difflib.unified_diff(before[name].splitlines(keepends=True),
+                                          after[name].splitlines(keepends=True),
+                                          fromfile="before/" + name, tofile="after/" + name))
+        fence = "`" * max(3, max((len(x) for x in re.findall(r"`+", diff)), default=0) + 1)
+        lines.extend([fence + "diff", diff or "No text change.", fence, ""])
+    lines.extend(["Status: " + result["status"], "Errors: " + json.dumps(result["errors"], ensure_ascii=False)])
+    return Preview("\n".join(lines) + "\n", bool(result["errors"]))
 
 
 def stamp():
@@ -210,11 +319,15 @@ def prepare(
     project_id=None,
     membership=None,
     max_chars=40000,
+    *,
+    document_only=False,
 ):
     dataset = Path(dataset).resolve()
     master = Path(master).resolve()
     run = Path(run).resolve()
-    if max_chars < 1:
+    if document_only and master.suffix != ".md":
+        raise FormatError("Single-document mode requires a Markdown file")
+    if type(max_chars) is not int or max_chars < 1:
         raise FormatError("max_chars must be positive")
     if bool(project_id) == bool(membership):
         raise FormatError("Specify project_id or an observed membership file, not both")
@@ -224,6 +337,8 @@ def prepare(
         raise FormatError("Run directory must be new or empty")
     if run.is_relative_to(dataset) or dataset.is_relative_to(run):
         raise FormatError("Review run must be separate from the dataset")
+    if master.is_relative_to(dataset) or master.is_relative_to(run):
+        raise FormatError("The Markdown document must be outside the dataset and run")
     report = validate_dataset(dataset)
     if report["errors"]:
         raise FormatError("Input dataset failed validation")
@@ -363,7 +478,7 @@ def prepare(
         )
     from .master_validation import validate_master
 
-    base = validate_master(master.read_text())
+    base = validate_master(read_document(master))
     if base["errors"]:
         raise FormatError("Master baseline failed: " + str(base["errors"]))
     frozen = load(dataset / "manifest.json")
@@ -401,6 +516,9 @@ def prepare(
         messages=message_index,
         packets=packets,
     )
+    if document_only:
+        # Output identity is frozen with the run. Old inventories retain three-file behavior.
+        inv["output_files"] = [master.name]
     run.mkdir(parents=True, exist_ok=True)
     atomic_json(run / "inventory.json", inv)
     return status(run)
@@ -906,7 +1024,8 @@ def check(run, batch=None):
     from .master_validation import validate_master, validate_reports
 
     root = Path(inv["master"]).parent
-    before = {n: (root / n).read_text() for n in FILES}
+    names = output_names(inv)
+    before = {n: read_document(root / n) for n in names}
     after = dict(before)
     errors = []
     doc = load(batch) if batch and not isinstance(batch, dict) else batch
@@ -920,8 +1039,8 @@ def check(run, batch=None):
             raise FormatError("Batch must reference active decisions")
         if len(set(doc["decision_ids"])) != len(doc["decision_ids"]):
             raise FormatError("Repeated decision ID in batch")
-        if set(doc["files"]) != set(FILES):
-            raise FormatError("Batch must account for master and both reports")
+        if set(doc["files"]) != set(names):
+            raise FormatError("Batch must account for exactly the configured output files")
         dispositions = doc.get("finding_dispositions", {})
         for did in doc["decision_ids"]:
             for f in active[did].get("findings", []):
@@ -957,14 +1076,10 @@ def check(run, batch=None):
                 or digest(after[name]) != spec["after_sha256"]
             ):
                 raise FormatError("Patch hash mismatch")
-    a = validate_master(after[FILES[0]], before[FILES[0]])
-    b = validate_reports(
-        after[FILES[0]],
-        after[FILES[1]],
-        after[FILES[2]],
-        before[FILES[1]],
-        before[FILES[2]],
-    )
+    a = validate_master(after[names[0]], before[names[0]])
+    b = (validate_reports(after[names[0]], after[names[1]], after[names[2]],
+                          before[names[1]], before[names[2]])
+         if len(names) == 3 else {"status": "not_required", "errors": []})
     errors.extend(a["errors"])
     errors.extend(b["errors"])
     if doc:
@@ -975,7 +1090,7 @@ def check(run, batch=None):
                 ]
                 if disposition["outcome"] == "integrated":
                     for q in finding.get("quotes", []):
-                        if q["text"] not in after[FILES[0]]:
+                        if q["text"] not in after[names[0]]:
                             errors.append(
                                 "Integrated quote missing from master: "
                                 + did
@@ -989,12 +1104,12 @@ def check(run, batch=None):
                             meta["provenance"]["sha256"],
                             meta["provenance"]["json_pointer"],
                         ):
-                            if witness not in after[FILES[0]]:
+                            if witness not in after[names[0]]:
                                 errors.append(
                                     "Integrated provenance missing from master: "
                                     + witness
                                 )
-        active_ids = set(re.findall(r'<a id="(e\d{4})"></a>', after[FILES[0]]))
+        active_ids = set(re.findall(r'<a id="(e\d{4})"></a>', after[names[0]]))
         for out in doc.get("finding_dispositions", {}).values():
             for eid in out.get("entry_ids", []):
                 if eid.lower() not in active_ids:
@@ -1013,6 +1128,12 @@ def check(run, batch=None):
 
 
 def apply(run, batch):
+    inv = checked_inventory(run)
+    with document_lock(Path(inv["master"])):
+        return _apply(run, batch)
+
+
+def _apply(run, batch):
     run = Path(run)
     doc = load(batch) if not isinstance(batch, dict) else batch
     bid = doc.get("batch_id", "")
@@ -1035,7 +1156,9 @@ def apply(run, batch):
         raise FormatError(
             "Prospective files failed validation: " + str(result["errors"])
         )
-    root = Path(load(run / "inventory.json")["master"]).parent
+    inv = load(run / "inventory.json")
+    root = Path(inv["master"]).parent
+    names = output_names(inv)
     j = dict(
         batch_id=bid,
         batch=doc,
@@ -1046,8 +1169,8 @@ def apply(run, batch):
         started_at=stamp(),
     )
     atomic_json(journal, j)
-    for name in FILES:
-        current = (root / name).read_text()
+    for name in names:
+        current = read_document(root / name)
         if digest(current) not in (digest(before[name]), digest(after[name])):
             raise FormatError("Canonical file changed during installation")
         if current != after[name]:

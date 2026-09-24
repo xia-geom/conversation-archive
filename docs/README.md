@@ -1,25 +1,11 @@
-# Documentation
+# Guides
 
-**AI agents:** start with [AGENTS.md](../AGENTS.md) and the [machine-readable task map](../project.json). Read one task guide, not this entire tree.
+Start with [the Markdown workflow](workflow.md). The product is one organized document, not a set of databases or dashboards.
 
-| Task | Start here |
-| --- | --- |
-| Try an offline example | [Getting started](getting-started.md) |
-| Import ChatGPT or Claude exports | [Importing](importing.md) |
-| Deduplicate and compare later ChatGPT exports | [Raw evidence store](raw-store.md) |
-| Run bounded candidate extraction | [Autonomy](autonomy.md) |
-| Explore a local SQLite / Cytoscape knowledge map | [Knowledge map](knowledge-map.md) |
-| Connect entries and answer 10–20 contextual questions | [Question batches](question-batches.md) |
-| Understand relationship rules and reversals | [Organization](organization.md) |
-| Prepare semantic relationship proposals with Codex | [Organization contract](organization-codex.md) |
-| Review findings and use the legacy Markdown writer | [Reconciliation](reconciliation.md) |
-| Use the first-stage SQLite migration | [Structured archive](structured-archive.md) |
-| Use versioned machine-readable snapshots | [Machine archive](machine-archive.md) |
-| Complete structured-authority migration | [Migration acceptance](migration-acceptance.md) |
-| Fix setup or state problems | [Troubleshooting](troubleshooting.md) |
+- [Workflow](workflow.md): import, optional extraction, review, preview and update.
+- [Architecture](../ARCHITECTURE.md): structure, authority, boundaries and removed components.
+- [Formats](formats.md): source locators, review findings and checked edits.
+- [Compatibility](compatibility.md): existing Markdown runs, raw stores and retired snapshots.
+- [Troubleshooting](troubleshooting.md): blocked updates and incomplete coverage.
 
-## Reference, only when needed
-
-[Record fields](data-dictionary.md) · [Concepts](concepts.md) · [Importer walkthrough](walkthrough.md) · [Examples](../examples/README.md) · [Contributing](../CONTRIBUTING.md)
-
-[Architecture audit](audit-2026-09-20.md), [interview guide](interview-demo.md), and [learning roadmap](roadmap.md) retain their existing paths. Dated reports and planned capabilities are not proof of current implementation. CLI help and tests describe the checked-out code; the task map distinguishes implemented paths from locally reported or planned work.
+For development, read [AGENTS.md](../AGENTS.md) and [Contributing](../CONTRIBUTING.md). [Security](../SECURITY.md), [Privacy](../PRIVACY.md), and the historical [publication checklist](public-alpha.md) remain separate from ordinary use.

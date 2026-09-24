@@ -4,6 +4,9 @@
 /local.*.toml
 *.local.toml
 /work/
+/exports/
+.state/
+organized.md
 .*-staging-*/
 __pycache__/
 *.py[cod]
@@ -12,7 +15,7 @@ __pycache__/
 build/
 dist/
 .DS_Store
-# Derived retrieval databases and SQLite journal sidecars are never source fixtures.
+# Historical databases remain private even though database tooling is retired.
 *.sqlite
 *.sqlite3
 *.db

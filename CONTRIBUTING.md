@@ -1,56 +1,22 @@
 # Contributing
 
-[Overview](README.md) · [Documentation](docs/README.md) · [Architecture](docs/concepts.md)
+[Architecture](ARCHITECTURE.md) · [Workflow](docs/workflow.md) · [Agent instructions](AGENTS.md)
 
-Start by running the [offline quickstart](docs/getting-started.md). You should be able to explain one candidate's source and why the demo leaves the master unchanged before changing extraction or reconciliation behavior.
+Keep the product small: original exports, a maintained Markdown document, and enough bookkeeping to update it safely. A new database, graph, service, or representation needs a demonstrated reader problem—not an abstract preference for architecture.
 
-## Development setup
-
-Use Python 3.11 or newer. The candidate controller requires macOS or Linux. From the repository root, no package installation or third-party test dependency is needed:
+Use Python 3.11+ on macOS or Linux. From the checkout:
 
 ```sh
 python3 -m unittest discover -s tests -v
-python3 -m conversation_archive.demo --output data/contributor-demo
+python3 -m conversation_archive.demo --markdown --output data/contributor-demo
 ```
 
-Choose a fresh demo directory. For command details, use `python3 -m conversation_archive --help` and `python3 -m conversation_archive.autonomy --help`. Read [AGENTS.md](AGENTS.md) before an agent-assisted change.
+Use a new demo directory. The demo is a predetermined synthetic exercise, not a model-quality evaluation. Ordinary tests must not use private archives, credentials, or live model calls.
 
-## Choose a small change
+A pull request should explain the user-visible change and tests actually run. Preserve source bytes, attribution, unknown dates, manual edits, prior decisions, and repeat/interruption behavior. Do not lower safeguards to make tests pass. Retired-feature tests can be removed with their implementation; retained source/update/security behavior still needs coverage.
 
-| Area | Good starting point |
-| --- | --- |
-| Onboarding | Reproduce a confusing step and improve its example or error explanation |
-| Source fidelity | Add an invented fixture for a previously untested content or graph shape |
-| Controller reliability | Reproduce a failure with a fake worker and add a regression test |
-| Evaluation | Define supported/unsupported interpretations in an invented annotated example |
+README is the front door. ARCHITECTURE owns structure and boundaries; `docs/workflow.md` owns normal operation; `docs/formats.md` owns data contracts. Consolidate overlapping explanations rather than adding another guide. Keep compatibility decisions explicit. The Markdown link and executable-demo tests must pass.
 
-Check [the audit](docs/audit-2026-09-20.md) before taking on automatic promotion, shared writer locking, or incremental export identity. Those need scoped design work, not an incidental documentation change. Do not claim a roadmap item is implemented without code and tests.
+Inspect the diff and all published commits for private data. Ignore rules are not encryption or proof that historical copies never existed. Use invented minimal reproductions. Do not change visibility, force-push, publish a release, or access a neighboring personal archive as a side effect of maintenance.
 
-## What a pull request should show
-
-Explain the user-visible problem, the changed behavior, and how you tested it. Preserve existing interfaces and source formats unless the change explicitly documents compatibility. New provider calls need test doubles; ordinary CI must not require credentials or spend model usage.
-
-For data/model changes, include a minimal invented input, expected behavior, and a failing regression test that the change fixes. Test more than the happy path: omissions, branches, exact quotations, interruptions, stale hashes, or replay may be relevant. An AI-generated implementation still needs review and evidence; explain which parts you inspected and tested.
-
-Before submitting, inspect `git diff --check`, `git diff --cached`, and every commit being published. Never commit real exports, private paths, credentials, personal masters, or provider request/response logs. Ignored files are not a complete privacy boundary.
-
-## Maintain the documentation layout
-
-The README is a front door: purpose, one runnable example, visible output, implemented/planned boundaries, and links. Put detailed setup in the import guide, operational controls in the autonomy runbook, and design explanations in concepts. Preserve established guide paths when reorganizing navigation.
-
-Use descriptive links, ordinary text headings, fenced commands with language tags, and text equivalents for any future figures. Do not rely on screenshots, emoji, badge colors, or a diagram alone to explain a required step. Keep the offline and paid paths visibly separate. Use invented examples only.
-
-`tests/test_docs.py` checks local Markdown links/anchors, runs the marked post-clone README commands and quickstart inspection commands, and compares the demo output with its committed expectation. Keep its smoke markers around runnable offline commands only. It does not check external website availability or measure LLM accuracy.
-
-## Layout inspiration
-
-The onboarding borrows presentation patterns, not code or claims:
-
-- [sqlite-utils](https://github.com/simonw/sqlite-utils): short purpose statement, concrete commands beside results, and links to deeper CLI/library references.
-- [dlt](https://github.com/dlt-hub/dlt): a small end-to-end pipeline before the larger capability and configuration reference.
-
-Both were consulted on 2026-09-20. Here those patterns become an account-free synthetic demo, inspectable evidence, task-based guides, and explicit current limitations. No affiliation or endorsement is implied.
-
-## License and public reports
-
-Contributions to this repository are submitted under its [MIT license](LICENSE). Keep existing third-party notices. The companion video is maintained separately; its license is not replaced by this repository’s license. Vulnerabilities follow [SECURITY.md](SECURITY.md); public feedback must use invented examples. Be respectful, describe observable behavior, and never request another person’s private archive.
+Contributions use the [MIT license](LICENSE). Report vulnerabilities through [SECURITY.md](SECURITY.md); keep [privacy](PRIVACY.md) and historical third-party attribution intact.

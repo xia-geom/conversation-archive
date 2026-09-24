@@ -1,95 +1,49 @@
 {
   "schema_version": "1.0",
   "name": "conversation-archive",
-  "primary_reader": "ai_agent",
+  "primary_reader": "ChatGPT and the owner reading organized Markdown",
   "instructions": "AGENTS.md",
-  "purpose": "Preserve conversation evidence and organize connected knowledge with scoped, reversible corrections.",
+  "architecture": "ARCHITECTURE.md",
+  "purpose": "Maintain one source-attributed Markdown file of important conversation information.",
   "target_authority": {
-    "canonical": "versioned structured entries, relationship assertions, and correction history",
-    "retrieval": "SQLite rebuilt from canonical records",
-    "views": "optional Markdown/navigation and evidence-grounded LLM explanations",
-    "migration_input": "existing master and original evidence, read-only"
+    "evidence": "original exports, unchanged",
+    "canonical": "maintained organized.md, including manual corrections",
+    "state": "processing checkpoints, source locators, and recoverable edit history; not another knowledge base"
   },
   "verification_command": ["python3", "-m", "unittest", "discover", "-s", "tests", "-v"],
   "tasks": {
+    "organize": {
+      "status": "implemented_agent_assisted_single_markdown_updates",
+      "guide": "docs/workflow.md",
+      "modules": ["conversation_archive/reconciliation.py", "conversation_archive/reconcile_cli.py", "conversation_archive/master_validation.py"],
+      "help": ["python3", "-m", "conversation_archive", "organize", "--help"],
+      "output": "one configurable Markdown document",
+      "unattended_semantic_integration": false,
+      "requires_database": false
+    },
     "import": {
-      "status": "implemented",
-      "guide": "docs/importing.md",
+      "status": "implemented_chatgpt_and_claude",
+      "guide": "docs/formats.md",
       "modules": ["conversation_archive/inventory.py", "conversation_archive/pipeline.py", "conversation_archive/validation.py"],
       "help": ["python3", "-m", "conversation_archive", "--help"]
     },
     "extract": {
-      "status": "implemented_requires_live_calibration",
-      "guide": "docs/autonomy.md",
+      "status": "optional_candidates_only_requires_live_calibration",
+      "guide": "docs/workflow.md",
       "modules": ["conversation_archive/extraction.py", "conversation_archive/autonomy.py", "conversation_archive/codex_worker.py"],
-      "help": ["python3", "-m", "conversation_archive.autonomy", "--help"]
-    },
-    "organize": {
-      "status": "implemented_for_supplied_candidates",
-      "guide": "docs/question-batches.md",
-      "modules": ["conversation_archive/organization.py", "conversation_archive/organization_batches.py"],
-      "help": ["python3", "-m", "conversation_archive.organization_batches", "--help"],
-      "default_questions": 15,
-      "semantic_proposer": "separately invoked agent; not an autonomous discovery worker"
-    },
-    "reconcile_legacy": {
-      "status": "implemented_legacy_markdown_writer",
-      "guide": "docs/reconciliation.md",
-      "modules": ["conversation_archive/reconciliation.py", "conversation_archive/master_validation.py"],
-      "help": ["python3", "-m", "conversation_archive", "reconcile", "--help"]
-    },
-    "migrate_authority": {
-      "status": "implemented_binding_and_directed_relation_decisions_acceptance_incomplete",
-      "guide": "docs/machine-archive.md",
-      "modules": ["conversation_archive/machine_archive.py", "conversation_archive/structured_archive.py"],
-      "help": ["python3", "-m", "conversation_archive.machine_archive", "--help"],
-      "next_action": "Validate correction accounting, replay and revocation before claiming full cutover."
-    },
-    "review_snapshot": {
-      "status": "implemented_local_html_and_checked_review_successors",
-      "guide": "docs/snapshot-review.md",
-      "modules": ["conversation_archive/snapshot_review.py", "conversation_archive/review_html.py"],
-      "help": ["python3", "-m", "conversation_archive.snapshot_review", "--help"],
-      "input_format": "machine_archive-1.0 plus optional snapshot-bound supplied cases",
-      "review_protocol": "snapshot-review-1.0",
-      "default_questions": 15,
-      "automatic_conflict_discovery": false,
-      "no_model_calls": true,
-      "browser_archive_writes": false,
-      "identity_grouping": "not supported in this UI",
-      "reversal_scope": "review answers and directed-relation dependents; identity-binding dependencies refuse the update"
-    },
-    "generate_llm_views": {
-      "status": "planned",
-      "guide": "docs/migration-acceptance.md",
-      "modules": [],
-      "help": null
-    },
-    "knowledge_map": {
-      "status": "implemented_read_only_organization_and_machine_archive_projection",
-      "guide": "docs/knowledge-map.md",
-      "modules": ["conversation_archive/knowledge_map.py", "conversation_archive/knowledge_store.py", "conversation_archive/knowledge_server.py"],
-      "help": ["python3", "-m", "conversation_archive.knowledge_map", "--help"],
-      "input_format": "organization-1.0 or machine_archive-1.0",
-      "retrieval": "SQLite FTS5 and bounded graph neighborhoods",
-      "viewer": "local Cytoscape.js; explicit pinned asset installation",
-      "no_model_calls": true,
-      "no_archive_writes": true
+      "help": ["python3", "-m", "conversation_archive.autonomy", "--help"],
+      "automatic_document_update": false
     },
     "raw_store": {
-      "status": "implemented_lossless_deduplication_and_conservative_delta",
-      "guide": "docs/raw-store.md",
+      "status": "optional_existing_export_backup_and_delta",
+      "guide": "docs/compatibility.md",
       "modules": ["conversation_archive/raw_store.py", "conversation_archive/raw_json.py", "conversation_archive/raw_delta.py"],
       "help": ["python3", "-m", "conversation_archive.raw_store", "--help"],
-      "input_format": "ChatGPT conversation JSON/ZIP",
-      "no_model_calls": true,
-      "originals_read_only": true,
-      "automatic_master_update": false,
-      "scope": "Exact selected JSON bytes; ZIP containers and attachment bytes remain external."
+      "automatic_master_update": false
     }
   },
-  "private_data_policy": "Real archives, databases, snapshots, questions, answers, prompts and generated views remain outside Git.",
-  "companion_video": "https://github.com/xia-geom/math_video_project/tree/main/miscellaneous/conversation_archive_intro_en",
+  "retired_components": ["SQLite retrieval and migration", "machine snapshots", "knowledge-map server", "entity organization engine", "snapshot HTML review"],
+  "private_data_policy": "Real exports, documents, state, prompts, answers, and logs remain outside Git; no automatic upload.",
   "publication": {
     "release": "0.1.2a1",
     "stage": "alpha_preparation",
@@ -98,6 +52,7 @@
     "security": "SECURITY.md",
     "privacy": "PRIVACY.md",
     "workflow_and_migration_development": "explicitly_deferred",
+    "note": "Historical alpha-preparation scope; current unreleased Markdown simplification is documented in ARCHITECTURE.md.",
     "visibility_changes": "owner_setting_after_publication_review"
   }
 }

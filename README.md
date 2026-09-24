@@ -1,71 +1,41 @@
 # Conversation Archive
 
-**Turn scattered AI conversations into a traceable knowledge archive.**
+Maintain **one organized Markdown file of the important information in your chats**, with source references and your corrections preserved. The file is intended to be useful to you and to a reader such as ChatGPT—not to reproduce every message.
 
-Experimental alpha · [MIT license](LICENSE) · [Security](SECURITY.md) · [Data flow](PRIVACY.md)
-
-Preserve the evidence, propose connections, clarify uncertainty in batches, and keep corrections reusable. Related entries stay separate.
-
-## If you are an AI agent or language model
-
-Read [AGENTS.md](AGENTS.md), then [project.json](project.json). Select only the guide for your task; do not load the entire documentation tree or personal archive. Verify your checkout before claiming that a capability exists.
-
-## Try it
-
-Python 3.11+, Git, macOS or Linux. After obtaining repository access:
-
-```sh
-git clone https://github.com/xia-geom/conversation-archive.git
-cd conversation-archive
+```text
+Chat exports + current organized.md
+           ↓
+Select important information and compare with existing entries
+           ↓
+Check evidence, resolve important ambiguities, apply approved edits
+           ↓
+organized.md
 ```
+
+The normal collection has `organized.md`, preserved exports, and a private `.state/` folder for progress and update history. There is **no SQL database, knowledge graph, snapshot migration, or HTML application to maintain**.
+
+## Use it
+
+Ask your authorized local agent:
+
+> Update organized.md from the supplied chat exports. Follow AGENTS.md. Reuse completed work, preserve my edits and original evidence, organize by useful topics, and raise only important contradictions or ambiguities. Show checked changes before applying them. Do not upload the result automatically.
+
+The implemented importer supports ChatGPT and Claude. Gemini requires a separately tested adapter; do not pretend a Gemini export was processed. Live model processing requires explicit transfer authorization. Adding the resulting Markdown to ChatGPT is a separate user action; local file creation does not upload it.
+
+## Try it without private data or a model
+
+Python 3.11+ on macOS or Linux. From the checkout:
 
 <!-- smoke:quickstart:start -->
 ```sh
-python3 -m conversation_archive.demo --output data/first-run
-python3 -m conversation_archive.autonomy status --state data/first-run/extraction
+python3 -m conversation_archive.demo --markdown --output data/markdown-demo
 ```
 <!-- smoke:quickstart:end -->
 
-Selected output:
+Open `data/markdown-demo/organized.md`. The demo uses predetermined **invented** review decisions. It exercises import, exact quotations, single-document updates and safe replay; it does not claim automatic model accuracy.
 
-<!-- smoke:expected:start -->
-```json
-{
-  "selected_conversations": 2,
-  "packets": 9,
-  "replay_extra_calls": 0,
-  "fabricated_quote_rejected": true,
-  "canonical_files_unchanged": true
-}
-```
-<!-- smoke:expected:end -->
+## Work on real exports
 
-This is an **offline synthetic demo**, not a model-quality benchmark. No installation, account, API key, or paid model call is needed after cloning. Use a fresh output directory on another run. [Inspect the result](docs/getting-started.md).
+The [workflow guide](docs/workflow.md) covers import, optional bounded extraction, review, preview, and update. These are internal stages of one workflow, not products you must maintain separately. `organize --help` lists the actual commands; it is not an unattended summarization service.
 
-## Explore the knowledge map
-
-[Open a local SQLite + Cytoscape map](docs/knowledge-map.md): search entries, focus on nearby connections, and inspect exact evidence. Read-only, no model calls, and no hosted service. The pinned viewer library needs a one-time explicit download; browsing then works offline.
-
-## What works, and what comes next
-
-**In this repository:** export preservation and validation; optional bounded Codex candidate extraction; separate checked reconciliation; a read-only SQLite/Cytoscape knowledge map; relationship rules and batches of 15 contextual questions (10 or 20 configurable). Semantic relationship candidates still need an agent or operator. Exact quotations establish provenance, not correct interpretation.
-
-**Not shipped in this alpha:** automatic semantic discovery and LLM-generated views. The local structured-authority migration is implemented, but its full [acceptance gates](docs/migration-acceptance.md) remain under review. The target remains structured records → rebuildable SQLite retrieval → optional readable views. [Capability map](project.json) · [Migration gates](docs/migration-acceptance.md).
-
-## Choose a task
-
-[Import exports](docs/importing.md) · [Store and compare later exports](docs/raw-store.md) · [Run Codex extraction](docs/autonomy.md) · [Connect entries and answer batches](docs/question-batches.md) · [Develop or migrate](AGENTS.md) · [Watch the English introduction](https://github.com/xia-geom/math_video_project/releases/download/conversation-archive-intro-v1/conversation_archive_intro_en_silent_preview.mp4)
-
-[Machine archive](docs/machine-archive.md) · [SQLite migration](docs/structured-archive.md) · [All guides](docs/README.md) · [Troubleshooting](docs/troubleshooting.md) · [Contributing](CONTRIBUTING.md)
-
-## Verify and keep private data local
-
-```sh
-python3 -m unittest discover -s tests -v
-```
-
-Commit code, documentation, and invented examples only. Real exports, snapshots, databases, questions, answers, prompts, logs, and generated views stay local in ignored directories. Live model calls require explicit permission to transfer data. Do not rewrite the master or publish media as a side effect of setup.
-
-## Feedback
-
-Try the existing demo and report confusing steps with invented examples. A star is appreciated when the project is useful. [Alpha scope and invitation](docs/public-alpha.md) · [Changes](CHANGELOG.md)
+[Architecture](ARCHITECTURE.md) · [Agent instructions](AGENTS.md) · [Compatibility with existing archives](docs/compatibility.md)
