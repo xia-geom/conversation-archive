@@ -6,19 +6,23 @@
   "architecture": "ARCHITECTURE.md",
   "purpose": "Maintain one source-attributed Markdown file of important conversation information.",
   "target_authority": {
-    "evidence": "original exports, unchanged",
-    "canonical": "maintained organized.md, including manual corrections",
-    "state": "processing checkpoints, source locators, and recoverable edit history; not another knowledge base"
+    "evidence": "original exports and preserved bundles, unchanged",
+    "canonical": "one selected maintained organized.md, including manual corrections",
+    "state": "processing, exact source locations, review receipts and recoverable edit history; not another knowledge base"
   },
   "verification_command": ["python3", "-m", "unittest", "discover", "-s", "tests", "-v"],
   "tasks": {
     "organize": {
-      "status": "implemented_agent_assisted_single_markdown_updates",
+      "status": "implemented_agent_assisted_markdown_updates_and_checked_reading_publication",
       "guide": "docs/workflow.md",
-      "modules": ["conversation_archive/reconciliation.py", "conversation_archive/reconcile_cli.py", "conversation_archive/master_validation.py"],
+      "skill": ".agents/skills/organize-markdown/SKILL.md",
+      "modules": ["conversation_archive/reconciliation.py", "conversation_archive/reconcile_cli.py", "conversation_archive/master_validation.py", "conversation_archive/reading.py", "conversation_archive/reading_document.py", "conversation_archive/reading_review.py"],
       "help": ["python3", "-m", "conversation_archive", "organize", "--help"],
-      "output": "one configurable Markdown document",
+      "reading_help": ["python3", "-m", "conversation_archive", "reading", "--help"],
+      "output": "one selected maintained Markdown; publication to a fresh path does not switch authority automatically",
+      "reading_stages": ["prepare", "packet", "source", "check", "publish", "status"],
       "unattended_semantic_integration": false,
+      "automatic_event_matching": false,
       "requires_database": false
     },
     "import": {
@@ -42,8 +46,9 @@
       "automatic_master_update": false
     }
   },
-  "retired_components": ["SQLite retrieval and migration", "machine snapshots", "knowledge-map server", "entity organization engine", "snapshot HTML review"],
-  "private_data_policy": "Real exports, documents, state, prompts, answers, and logs remain outside Git; no automatic upload.",
+  "retired_components": ["SQLite retrieval and migration", "machine snapshot writer", "knowledge-map server", "entity organization engine", "snapshot HTML review"],
+  "legacy_reading_scope": "recognizes preserved documents and supported finite identity decisions; unsupported active operations stop conversion",
+  "private_data_policy": "Real exports, documents, state, prompts, answers and logs remain outside Git; no automatic upload.",
   "publication": {
     "release": "0.1.2a1",
     "stage": "alpha_preparation",
@@ -52,7 +57,7 @@
     "security": "SECURITY.md",
     "privacy": "PRIVACY.md",
     "workflow_and_migration_development": "explicitly_deferred",
-    "note": "Historical alpha-preparation scope; current unreleased Markdown simplification is documented in ARCHITECTURE.md.",
+    "note": "Historical alpha-preparation scope; unreleased Markdown and reading workflow documented in ARCHITECTURE.md.",
     "visibility_changes": "owner_setting_after_publication_review"
   }
 }

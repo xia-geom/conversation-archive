@@ -1,30 +1,29 @@
 # Conversation Archive
 
-Maintain **one organized Markdown file of the important information in your chats**, with source references and your corrections preserved. The file is intended to be useful to you and to a reader such as ChatGPT—not to reproduce every message.
+Maintain **one organized Markdown file of important conversation information**, with source references, qualifications and corrections preserved. It is for you and ChatGPT—not a reproduction of every message.
 
 ```text
 Chat exports + current organized.md
-           ↓
-Select important information and compare with existing entries
-           ↓
-Check evidence, resolve important ambiguities, apply approved edits
-           ↓
-organized.md
+    → select information and reconcile whole entries
+    → check evidence and review important ambiguities
+    → publish one useful Markdown document
 ```
 
-The normal collection has `organized.md`, preserved exports, and a private `.state/` folder for progress and update history. There is **no SQL database, knowledge graph, snapshot migration, or HTML application to maintain**.
+The normal collection has `organized.md`, preserved exports and a private `.state/` folder for progress and recovery. No SQL database, knowledge graph, embedding service or HTML application is required.
 
 ## Use it
 
 Ask your authorized local agent:
 
-> Update organized.md from the supplied chat exports. Follow AGENTS.md. Reuse completed work, preserve my edits and original evidence, organize by useful topics, and raise only important contradictions or ambiguities. Show checked changes before applying them. Do not upload the result automatically.
+> Use the organize-markdown skill to audit and update the supplied document. Read full entries and their evidence. Prioritize misplaced additions, stale uncertainty, contradictions and corrections. Preserve my edits, historical nuance and original sources. Use the checked reading pipeline; show the proposed Markdown before publishing. Ask me only about consequential ambiguity and do not upload anything automatically.
 
-The implemented importer supports ChatGPT and Claude. Gemini requires a separately tested adapter; do not pretend a Gemini export was processed. Live model processing requires explicit transfer authorization. Adding the resulting Markdown to ChatGPT is a separate user action; local file creation does not upload it.
+The [workflow](docs/workflow.md) connects existing source imports and checked edits with the `reading` audit/review/publication commands. The [skill](.agents/skills/organize-markdown/SKILL.md) guides editorial work; it does not replace deterministic checks or grant permissions. Mechanical scans flag candidates, not verified contradictions.
+
+Implemented export adapters are ChatGPT and Claude. Gemini needs a separately tested adapter. Live model processing requires explicit transfer authorization; adding the result to ChatGPT remains a separate action.
 
 ## Try it without private data or a model
 
-Python 3.11+ on macOS or Linux. From the checkout:
+Python 3.11+ on macOS or Linux, from the checkout:
 
 <!-- smoke:quickstart:start -->
 ```sh
@@ -32,10 +31,8 @@ python3 -m conversation_archive.demo --markdown --output data/markdown-demo
 ```
 <!-- smoke:quickstart:end -->
 
-Open `data/markdown-demo/organized.md`. The demo uses predetermined **invented** review decisions. It exercises import, exact quotations, single-document updates and safe replay; it does not claim automatic model accuracy.
+Open `data/markdown-demo/organized.md`. This uses predetermined invented review decisions, not an automatic claim of model accuracy. The test suite also exercises a misplaced-source repair, clean publication, deferral and interruption recovery with invented records.
 
-## Work on real exports
-
-The [workflow guide](docs/workflow.md) covers import, optional bounded extraction, review, preview, and update. These are internal stages of one workflow, not products you must maintain separately. `organize --help` lists the actual commands; it is not an unattended summarization service.
+`python3 -m conversation_archive reading --help` lists the reading commands. Original evidence remains unchanged, and publication refuses to overwrite a manually edited output. Existing legacy collections are not silently migrated.
 
 [Architecture](ARCHITECTURE.md) · [Agent instructions](AGENTS.md) · [Compatibility with existing archives](docs/compatibility.md)
