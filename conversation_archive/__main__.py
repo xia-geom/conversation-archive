@@ -11,8 +11,13 @@ from .pipeline import normalize, validate, inspect_record, write_json
 
 
 def main(argv=None):
+    argv = list(sys.argv[1:] if argv is None else argv)
+    if argv and argv[0] == "reading":
+        from .reading import main as reading_main
+        return reading_main(argv[1:])
     p = argparse.ArgumentParser(description=__doc__)
     sub = p.add_subparsers(dest="command", required=True)
+    sub.add_parser("reading", help="Audit whole entries and publish a checked reading Markdown")
     from .reconcile_cli import add_parser, dispatch
     add_parser(sub)
     for name in ("inventory", "normalize"):
