@@ -1,4 +1,4 @@
-"""Release metadata and publication-tool safety; no live calls or new product workflow."""
+"""Release metadata and publication-tool safety; no live calls or private data."""
 from __future__ import annotations
 
 import importlib.util
@@ -98,7 +98,7 @@ class PublicationTests(unittest.TestCase):
         with patch.object(audit, 'run') as run:
             with self.assertRaises(ValueError):
                 audit.collect('bad\nrepository', Path('not-created'))
-        run.assert_not_called()
+            run.assert_not_called()
 
     def test_raw_collection_refuses_public_repository(self):
         with tempfile.TemporaryDirectory() as temp, patch.object(audit, 'run', return_value=b'{"private":false}') as run:
@@ -115,11 +115,10 @@ class PublicationTests(unittest.TestCase):
             self.assertEqual((path / 'keep.txt').read_text(), 'preserve')
             run.assert_not_called()
 
-    def test_deferred_work_stays_explicit(self):
+    def test_historical_release_scope_and_current_removals_are_explicit(self):
         meta = json.loads((ROOT / 'project.json').read_text())
         self.assertEqual(meta['publication']['workflow_and_migration_development'], 'explicitly_deferred')
-        # Migration code arrived after alpha preparation; existence is not full acceptance.
-        self.assertEqual(meta['tasks']['migrate_authority']['status'],
-                         'implemented_binding_and_directed_relation_decisions_acceptance_incomplete')
+        self.assertNotIn('migrate_authority', meta['tasks'])
+        self.assertIn('machine snapshots', meta['retired_components'])
         self.assertFalse(meta['tasks']['raw_store']['automatic_master_update'])
         self.assertIn('server settings', (ROOT / 'docs/public-alpha.md').read_text())

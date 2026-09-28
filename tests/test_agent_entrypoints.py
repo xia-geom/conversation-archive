@@ -1,4 +1,4 @@
-"""Agent routing and claim-boundary checks; no personal data or model calls."""
+"""Keep the product surface small and its actual capabilities explicit."""
 import json
 from pathlib import Path
 import subprocess
@@ -17,11 +17,16 @@ class AgentEntrypointTests(unittest.TestCase):
         self.assertLessEqual(len((ROOT / "AGENTS.md").read_text().split()), 750)
         self.assertLessEqual(len((ROOT / "docs/README.md").read_text().split()), 300)
 
-    def test_language_model_section_routes_before_demo(self):
+    def test_primary_product_and_reading_path_are_markdown(self):
         text = (ROOT / "README.md").read_text()
-        self.assertLess(text.index("## If you are an AI agent or language model"), text.index("## Try it"))
-        self.assertIn("[AGENTS.md](AGENTS.md)", text)
-        self.assertIn("[project.json](project.json)", text)
+        self.assertIn("organized.md", text)
+        self.assertIn("[Architecture](ARCHITECTURE.md)", text)
+        self.assertIn("[Agent instructions](AGENTS.md)", text)
+        self.assertIn("agent", text.lower())
+        self.assertNotIn("docs/machine-archive.md", text)
+        self.assertNotIn("docs/knowledge-map.md", text)
+        self.assertIn("Markdown", self.project["primary_reader"])
+        self.assertIn("organized.md", self.project["target_authority"]["canonical"])
 
     def test_task_paths_exist_and_stay_in_repo(self):
         self.assertEqual(self.project["schema_version"], "1.0")
@@ -35,8 +40,6 @@ class AgentEntrypointTests(unittest.TestCase):
     def test_task_help_commands_execute_without_data_or_model(self):
         for task in self.project["tasks"].values():
             command = task["help"]
-            if command is None:
-                continue
             self.assertEqual(command[:2], ["python3", "-m"])
             self.assertEqual(command[-1], "--help")
             result = subprocess.run([sys.executable, *command[1:]], cwd=ROOT,
@@ -44,18 +47,18 @@ class AgentEntrypointTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn("usage:", result.stdout.lower())
 
-    def test_migration_implementation_is_not_full_acceptance(self):
-        task = self.project["tasks"]["migrate_authority"]
-        self.assertEqual(task["status"], "implemented_binding_and_directed_relation_decisions_acceptance_incomplete")
-        self.assertIn("conversation_archive/machine_archive.py", task["modules"])
-        self.assertIsNotNone(task["help"])
-        self.assertEqual(self.project["tasks"]["generate_llm_views"]["status"], "planned")
+    def test_removed_architecture_is_not_hidden_in_required_workflow(self):
+        self.assertEqual(set(self.project["tasks"]), {"organize", "import", "extract", "raw_store"})
+        self.assertFalse(self.project["tasks"]["organize"]["requires_database"])
+        self.assertFalse(self.project["tasks"]["organize"]["unattended_semantic_integration"])
+        self.assertFalse(self.project["tasks"]["extract"]["automatic_document_update"])
+        for name in ("machine_archive", "structured_archive", "knowledge_map", "snapshot_review"):
+            self.assertFalse((ROOT / "conversation_archive" / (name + ".py")).exists())
 
-    def test_context_batches_and_synthetic_privacy_are_explicit(self):
-        self.assertEqual(self.project["tasks"]["organize"]["default_questions"], 15)
-        text = (ROOT / "docs/migration-acceptance.md").read_text()
-        for required in ("Correction accounting", "Revocation", "Replay and stale input",
-                         "master inaccessible", "No evidence feedback", "synthetic corrections"):
+    def test_real_workflow_and_privacy_requirements_stay_explicit(self):
+        text = (ROOT / "ARCHITECTURE.md").read_text()
+        for required in ("primary reader", "Manual edits", "source", "semantic-search", "No step imports SQL"):
             self.assertIn(required, text)
         self.assertNotIn("/Users/", text)
-        self.assertNotRegex(text, r"\b[0-9a-f]{64}\b")
+        self.assertIn("synthetic", text)
+        self.assertIn("not", text)

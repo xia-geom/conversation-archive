@@ -1,25 +1,20 @@
 # Data flow and privacy
 
-This document describes the checked-in tools, not a promise about a model provider's retention policy.
-
-| Operation | Data used | Network/model boundary |
+| Operation | Data | Boundary |
 | --- | --- | --- |
-| Import, normalize, validate, inspect | Configured local exports and attachment references | No model or attachment network fetch |
-| Offline demo and ordinary tests | Invented repository fixtures | No model calls or API keys |
-| Organization and contextual batches | Supplied entries, candidates, prior scoped answers | Deterministic local processing; an agent may separately propose semantics |
-| Live `autonomy run` | Selected packet text, role/context, explicit model/effort | Requires `--allow-model-transfer`; sends packets to the configured Codex provider |
-| Publication inventory | Repository Git objects, GitHub discussions, Actions logs and artifact metadata/content | Reads the selected GitHub repository, never a neighboring personal archive; no model |
+| Import, normalize, validate, inspect | Configured exports and attachment references | Local; no model or attachment download |
+| Organize, preview, checked apply | Current Markdown, reviewed source spans, proposed patches | Local deterministic code; semantic review is a separate human/agent action |
+| Demo and ordinary tests | Invented fixtures | No model calls or credentials |
+| Optional live extraction | Selected packet text and attribution/context | Requires explicit `--allow-model-transfer`; sends text to the configured provider |
+| Optional raw store | Configured export bytes and comparison receipts | Local; does not update the Markdown |
+| Publication audit | Selected repository history and logs | Reads GitHub, not a neighboring personal archive |
 
-The live adapter omits local provenance paths from its structured request, but a conversation's own text may contain private details. Consult the actual provider/account configuration before permitting transfer. This alpha has no built-in analytics collector; an externally invoked agent or provider is outside that statement.
+A local file read by a cloud agent is still model processing. This document is not a provider-retention guarantee. The live worker omits structured local path metadata, but the text itself may contain private details. Inspect the actual account/configuration and authorize transfer explicitly. No automatic upload of `organized.md` to ChatGPT is implemented.
 
-Private inputs, snapshots, SQLite databases and journal sidecars, generated views, questions, answers, prompts, responses, receipts, event streams, and stderr belong outside Git or in ignored local directories. Ignore rules are neither encryption nor an assurance that historical copies were never committed.
+Keep exports, Markdown documents, `.state`, draft edits, questions, answers, source quotations, prompts, provider responses, event streams, receipts, and stderr private and outside Git. Ignore rules are not encryption, a sync control, or proof that older copies were never committed. Inspect storage permissions and synchronization settings separately.
 
-Live attempts retain evidence and diagnostics locally; no automatic private-data retention/deletion schedule is imposed. The operator controls storage and deletion. Do not delete run state merely to reset spending. Share an invented minimal reproduction, not an archive or full log. Generated views are not new evidence.
+Preserve uncertain or interrupted attempts for recovery and cost accounting; do not reset limits by deleting checkpoints. Retention and deletion remain operator choices. Share only invented examples, not full private logs.
 
-The optional raw publication-review bundle contains existing repository history and logs. It is collected only while the repository is private, kept as a short-lived private artifact, and must be removed from GitHub before changing visibility. Retain only a reviewed, sanitized audit summary for publication.
+The optional publication-review bundle is collected only from a private repository, kept briefly, and must be removed from GitHub before changing visibility. Successful collection or a secret scan is not publication approval. Historical database/snapshot/view files on a user's machine remain sensitive even though their code has been retired; this refactor neither reads nor deletes them.
 
-[Security reporting](SECURITY.md) · [Agent contract](AGENTS.md)
-
-## Local knowledge map
-
-The optional [map viewer](docs/knowledge-map.md) reads an owner-readable SQLite projection on loopback only. Its database retains exact entry text and correction answers; it is private, unencrypted local data. Browsing invokes no LLM, CDN, analytics or remote fonts. `knowledge_map assets --download` explicitly fetches only two checksum-pinned public library/license files from GitHub once; it sends no archive content. The viewer uses a per-session token and same-origin checks but is not a multi-user or internet-facing service. Keep the full session URL private and stop the server when finished. Generated maps and screenshots of a real archive must stay out of Git and public artifacts.
+[Security](SECURITY.md) · [Architecture](ARCHITECTURE.md) · [Compatibility](docs/compatibility.md)

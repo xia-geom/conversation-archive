@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "conversation-archive"
 version = "0.1.2a1"
-description = "Traceable, loss-conscious conversation export normalization"
+description = "Source-attributed organized Markdown from conversation exports"
 requires-python = ">=3.11"
 dependencies = []
 readme = "README.md"
@@ -22,6 +22,3 @@ conversation-archive = "conversation_archive.__main__:main"
 
 [tool.setuptools.packages.find]
 include = ["conversation_archive*"]
-
-[tool.setuptools.package-data]
-conversation_archive = ["map_web/*.html", "map_web/*.css", "map_web/*.js"]

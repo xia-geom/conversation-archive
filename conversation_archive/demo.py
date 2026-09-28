@@ -1,4 +1,4 @@
-"""Offline synthetic raw-export -> candidate demonstration, NOT a model evaluation."""
+"""Offline synthetic exercises; predetermined decisions are NOT model evaluation."""
 from __future__ import annotations
 
 import argparse
@@ -109,11 +109,67 @@ def run_demo(output: Path) -> dict:
     return result
 
 
+def run_markdown_demo(output: Path) -> dict:
+    from .pipeline import normalize
+    from . import reconciliation as r
+    output = Path(output).resolve()
+    if output.exists():
+        raise ExtractionError("Markdown demo output must be new")
+    exports = output / "exports"
+    state = output / ".state"
+    exports.mkdir(parents=True)
+    state.mkdir(mode=0o700)
+    source = exports / "invented.json"
+    source.write_text(json.dumps(synthetic_export()[:1], ensure_ascii=False), encoding="utf-8")
+    source_hash = r.sha_file(source)
+    config = state / "inputs.toml"
+    config.write_text('[[sources]]\nprovider = "chatgpt"\npath = "../exports/invented.json"\n', encoding="utf-8")
+    normalize(config, state / "dataset")
+    document = output / "organized.md"
+    r.init_document(document, "Invented conversation knowledge")
+    run = state / "review"
+    r.prepare(state / "dataset", document, run, project_id="invented-project", document_only=True)
+    packet = r.packet(run)
+    owner = next(p for p in packet["pieces"] if p["role"] == "user" and p["segment_index"] >= 0)
+    quote = dict(message_record_id=owner["message_record_id"], segment_index=owner["segment_index"],
+                 start=owner["start"], end=owner["end"], text=owner["text"])
+    decision = dict(decision_id="synthetic-garden", reviewer="Predetermined synthetic fixture",
+        reviewed_at="2026-01-01T00:00:00Z",
+        coverage=[dict(piece_id=p["piece_id"], outcome="distinct_episode" if p is owner else "excluded",
+                       reason="Invented owner report." if p is owner else "Assistant alternative, not an owner fact.",
+                       finding_ids=["F1"] if p is owner else []) for p in packet["pieces"]],
+        findings=[dict(finding_id="F1", outcome="distinct_episode", reason="Predetermined example only.",
+                       attribution="owner", quotes=[quote])])
+    r.record(run, decision)
+    entry = ('<a id="e0001"></a>\n### E0001 — Garden\n\n'
+             'The owner reported planting mint.\n'
+             'Event date: not established by the message timestamp.\n\n'
+             f'Source: ChatGPT message `{owner["original_message_id"]}`, export SHA-256 '
+             f'`{owner["provenance"]["sha256"]}`, JSON pointer `{owner["provenance"]["json_pointer"]}`.\n\n'
+             f'```text\n{owner["text"]}\n```')
+    edits = dict(batch_id="synthetic-update", document_sha256=r.digest(r.read_document(document)),
+        decision_ids=[decision["decision_id"]], finding_dispositions={"synthetic-garden/F1": dict(
+            outcome="integrated", reason="Explicit fixture decision, not live user review.", entry_ids=["E0001"])},
+        patches=[dict(before='<!-- Add supported entries with stable E0001-style IDs here. -->', after=entry),
+                 dict(before="No review has been completed yet.",
+                      after="The source reports planting mint; its event date remains uncertain. This example covers one invented conversation only.")])
+    batch = state / "update.json"
+    r.draft(run, edits, batch)
+    checked = r.check(run, batch)[0]
+    r.apply(run, batch)
+    replay = r.apply(run, batch)
+    return {"fixture_only_not_model_accuracy": True, "document": "organized.md",
+            "entries": 1, "checked": checked["status"], "replay": replay["status"],
+            "original_unchanged": r.sha_file(source) == source_hash,
+            "database_files": len(list(output.rglob("*.sqlite*")))}
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--markdown", action="store_true", help="Produce the primary Markdown output from invented decisions")
     args = parser.parse_args(argv)
-    print(json.dumps(run_demo(args.output), indent=2))
+    print(json.dumps((run_markdown_demo if args.markdown else run_demo)(args.output), indent=2))
     return 0
 
 

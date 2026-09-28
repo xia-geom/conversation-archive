@@ -1,71 +1,38 @@
 # Conversation Archive
 
-**Turn scattered AI conversations into a traceable knowledge archive.**
+Maintain **one organized Markdown file of important conversation information**, with source references, qualifications and corrections preserved. It is for you and ChatGPT—not a reproduction of every message.
 
-Experimental alpha · [MIT license](LICENSE) · [Security](SECURITY.md) · [Data flow](PRIVACY.md)
-
-Preserve the evidence, propose connections, clarify uncertainty in batches, and keep corrections reusable. Related entries stay separate.
-
-## If you are an AI agent or language model
-
-Read [AGENTS.md](AGENTS.md), then [project.json](project.json). Select only the guide for your task; do not load the entire documentation tree or personal archive. Verify your checkout before claiming that a capability exists.
-
-## Try it
-
-Python 3.11+, Git, macOS or Linux. After obtaining repository access:
-
-```sh
-git clone https://github.com/xia-geom/conversation-archive.git
-cd conversation-archive
+```text
+Chat exports + current organized.md
+    → select information and reconcile whole entries
+    → check evidence and review important ambiguities
+    → publish one useful Markdown document
 ```
+
+The normal collection has `organized.md`, preserved exports and a private `.state/` folder for progress and recovery. No SQL database, knowledge graph, embedding service or HTML application is required.
+
+## Use it
+
+Ask your authorized local agent:
+
+> Use the organize-markdown skill to audit and update the supplied document. Read full entries and their evidence. Prioritize misplaced additions, stale uncertainty, contradictions and corrections. Preserve my edits, historical nuance and original sources. Use the checked reading pipeline; show the proposed Markdown before publishing. Ask me only about consequential ambiguity and do not upload anything automatically.
+
+The [workflow](docs/workflow.md) connects existing source imports and checked edits with the `reading` audit/review/publication commands. The [skill](.agents/skills/organize-markdown/SKILL.md) guides editorial work; it does not replace deterministic checks or grant permissions. Mechanical scans flag candidates, not verified contradictions.
+
+Implemented export adapters are ChatGPT and Claude. Gemini needs a separately tested adapter. Live model processing requires explicit transfer authorization; adding the result to ChatGPT remains a separate action.
+
+## Try it without private data or a model
+
+Python 3.11+ on macOS or Linux, from the checkout:
 
 <!-- smoke:quickstart:start -->
 ```sh
-python3 -m conversation_archive.demo --output data/first-run
-python3 -m conversation_archive.autonomy status --state data/first-run/extraction
+python3 -m conversation_archive.demo --markdown --output data/markdown-demo
 ```
 <!-- smoke:quickstart:end -->
 
-Selected output:
+Open `data/markdown-demo/organized.md`. This uses predetermined invented review decisions, not an automatic claim of model accuracy. The test suite also exercises a misplaced-source repair, clean publication, deferral and interruption recovery with invented records.
 
-<!-- smoke:expected:start -->
-```json
-{
-  "selected_conversations": 2,
-  "packets": 9,
-  "replay_extra_calls": 0,
-  "fabricated_quote_rejected": true,
-  "canonical_files_unchanged": true
-}
-```
-<!-- smoke:expected:end -->
+`python3 -m conversation_archive reading --help` lists the reading commands. Original evidence remains unchanged, and publication refuses to overwrite a manually edited output. Existing legacy collections are not silently migrated.
 
-This is an **offline synthetic demo**, not a model-quality benchmark. No installation, account, API key, or paid model call is needed after cloning. Use a fresh output directory on another run. [Inspect the result](docs/getting-started.md).
-
-## Explore the knowledge map
-
-[Open a local SQLite + Cytoscape map](docs/knowledge-map.md): search entries, focus on nearby connections, and inspect exact evidence. Read-only, no model calls, and no hosted service. The pinned viewer library needs a one-time explicit download; browsing then works offline.
-
-## What works, and what comes next
-
-**In this repository:** export preservation and validation; optional bounded Codex candidate extraction; separate checked reconciliation; a read-only SQLite/Cytoscape knowledge map; relationship rules and batches of 15 contextual questions (10 or 20 configurable). Semantic relationship candidates still need an agent or operator. Exact quotations establish provenance, not correct interpretation.
-
-**Not shipped in this alpha:** automatic semantic discovery and LLM-generated views. The local structured-authority migration is implemented, but its full [acceptance gates](docs/migration-acceptance.md) remain under review. The target remains structured records → rebuildable SQLite retrieval → optional readable views. [Capability map](project.json) · [Migration gates](docs/migration-acceptance.md).
-
-## Choose a task
-
-[Import exports](docs/importing.md) · [Store and compare later exports](docs/raw-store.md) · [Run Codex extraction](docs/autonomy.md) · [Connect entries and answer batches](docs/question-batches.md) · [Develop or migrate](AGENTS.md) · [Watch the English introduction](https://github.com/xia-geom/math_video_project/releases/download/conversation-archive-intro-v1/conversation_archive_intro_en_silent_preview.mp4)
-
-[Machine archive](docs/machine-archive.md) · [SQLite migration](docs/structured-archive.md) · [All guides](docs/README.md) · [Troubleshooting](docs/troubleshooting.md) · [Contributing](CONTRIBUTING.md)
-
-## Verify and keep private data local
-
-```sh
-python3 -m unittest discover -s tests -v
-```
-
-Commit code, documentation, and invented examples only. Real exports, snapshots, databases, questions, answers, prompts, logs, and generated views stay local in ignored directories. Live model calls require explicit permission to transfer data. Do not rewrite the master or publish media as a side effect of setup.
-
-## Feedback
-
-Try the existing demo and report confusing steps with invented examples. A star is appreciated when the project is useful. [Alpha scope and invitation](docs/public-alpha.md) · [Changes](CHANGELOG.md)
+[Architecture](ARCHITECTURE.md) · [Agent instructions](AGENTS.md) · [Compatibility with existing archives](docs/compatibility.md)
