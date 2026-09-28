@@ -168,6 +168,9 @@ def packet(run, entry_ids, output, max_source_chars=30000):
 
 def source_packet(run, source_id, output, start=0, length=20000):
     inv, doc = current(run)
+    # Packets display source identifiers in uppercase while anchors are stored
+    # in lowercase. Accept either form, including the two non-entry contexts.
+    source_id = source_id if source_id in {"@master", "@decisions"} else source_id.lower()
     need(source_id in {"@master", "@decisions"} or source_id in doc.sources, "Source ID is not available in this input")
     if source_id in {"@master", "@decisions"}:
         context = doc.master if source_id == "@master" else doc.decisions
@@ -182,5 +185,4 @@ def source_packet(run, source_id, output, start=0, length=20000):
     header = availability + f"# Exact source range\n\nSource: {source_id}\n\nSHA-256 of full block: {source['sha256']}\n\nCharacters [{start}, {end}) of {len(source['text'])}; Unicode offsets, not bytes.\n\n"
     fresh_file(outside(output, inv["input_path"], Path(run) / "audit.json"), (header + quote_block(text)).encode())
     return {"status": "source_written", "start": start, "end": end, "complete": start == 0 and end == len(source["text"])}
-
 
