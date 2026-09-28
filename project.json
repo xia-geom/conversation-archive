@@ -46,7 +46,7 @@
       "automatic_master_update": false
     }
   },
-  "retired_components": ["SQLite retrieval and migration", "machine snapshot writer", "knowledge-map server", "entity organization engine", "snapshot HTML review"],
+  "retired_components": ["SQLite retrieval and migration", "machine snapshots", "knowledge-map server", "entity organization engine", "snapshot HTML review"],
   "legacy_reading_scope": "recognizes preserved documents and supported finite identity decisions; unsupported active operations stop conversion",
   "private_data_policy": "Real exports, documents, state, prompts, answers and logs remain outside Git; no automatic upload.",
   "publication": {
