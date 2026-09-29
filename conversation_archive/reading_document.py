@@ -14,7 +14,7 @@ from pathlib import Path
 import re
 from urllib.parse import unquote
 
-VERSION = "reading-1.0"
+VERSION = "reading-1.1"
 MAX_INPUT_BYTES = 64 * 1024 * 1024
 ENTRY = re.compile(r"^(E\d{4,})\s+[—–-]\s+(.+?)\s*$")
 LINK = re.compile(r"\[([^\]\n]+)\]\(#([^\s)]+)\)")
@@ -194,10 +194,11 @@ old snapshot. Unknown active operation types block conversion, not get omitted.
     appendix = text[text.index("## Structured record appendix"):]
     locators = appendix_table(appendix, "entries")
     need({x["entry_id"] for x in locators} == set(entries) and len(locators) == len(entries), "Snapshot and master entry coverage disagree")
+    master_sha256 = sha(master)
     for item in locators:
         lo, hi = item["source_start"], item["source_end"]
         need(type(lo) is int and type(hi) is int and 0 <= lo < hi <= len(master), "Invalid master entry locator")
-        need(item["source_sha256"] == sha(master), "Snapshot entry names a different master")
+        need(item["source_sha256"] == master_sha256, "Snapshot entry names a different master")
         located = re.sub(r'\s*<a id="[A-Za-z0-9_-]+"></a>\s*$', "", master[lo:hi]).strip()
         need(located == entries[item["entry_id"]]["text"].strip(), "Snapshot entry locator does not match preserved entry")
     events = {e["event_id"]: e for e in appendix_table(appendix, "correction_events")}
@@ -247,6 +248,7 @@ def source_blocks(master):
     ts = tokens(master)
     anchors = [t for t in ts if t["kind"] == "anchor"]
     result = {}
+    generated = master.startswith("# Organized conversation record\n") and bool(re.search(r"Generator: `reading-1\.[01]`", master[:1500]))
     for n, t in enumerate(anchors):
         if not re.fullmatch(r"(?:src-|cor\d)[A-Za-z0-9_-]*", t["id"], re.I):
             continue
@@ -255,6 +257,9 @@ def source_blocks(master):
         body = master[t["end"]:hi]
         result[t["id"]] = dict(source_id=t["id"], text=body, sha256=sha(body), start=t["end"], end=hi,
                                 line=t["line"] + 1)
+        if generated:
+            from .reading_evidence import unwrap_source
+            result[t["id"]].update(unwrap_source(body, t["id"]))
     return result
 
 
@@ -285,10 +290,13 @@ class Document:
         return cls.from_text(read_utf8(path))
 
     def basis(self, eid):
+        from .reading_evidence import correction_dependencies
         entry = self.entries[eid]
+        refs = set(entry["refs"]) | set(getattr(self, "reference_associations", {}).get(eid, []))
+        critical, _ = correction_dependencies(self, refs)
         return sha(encoded({"entry": entry["sha256"], "decisions": sha(self.decisions),
             "sources": {ref: self.sources[ref]["sha256"] if ref in self.sources else "unavailable"
-                        for ref in entry["refs"] if not re.fullmatch(r"e\d{4,}", ref)}}))
+                        for ref in sorted(refs | critical) if not re.fullmatch(r"e\d{4,}", ref)}}))
 
     def audit(self):
         issues = []
@@ -303,7 +311,7 @@ class Document:
         titles = {eid: words(e["title"]) for eid, e in self.entries.items()}
         for eid, e in self.entries.items():
             header = re.search(r"^\*\*Source references:\*\*([^\n]*)", e["text"], re.M)
-            in_header = references(header[0]) if header else []
+            in_header = references(header[0], include_external=True) if header else []
             body_sources = {x for x in e["refs"] if x.lower().startswith("src-")}
             missing = sorted(body_sources - set(in_header))
             if missing:
@@ -330,7 +338,8 @@ class Document:
             m = re.match(r"\| \[(E\d{4,})\]\(#[^)]+\) \| ([^|]+) \|", line)
             if m and m[1] in self.entries and m[2].strip() != self.entries[m[1]]["title"]:
                 add("stale_index_title", m[1], "Index title differs from entry title; output index is generated", "mechanical")
-        first_source = min((v["start"] for k, v in self.sources.items() if k.startswith("src-")), default=len(self.master))
+        first_source = min((t["end"] for t in tokens(self.master) if t["kind"] == "anchor"
+                            and t["id"].startswith("src-")), default=len(self.master))
         headings = [t for t in tokens(self.master) if t["kind"] == "heading" and t["level"] == 1 and t["start"] < first_source]
         context = [dict(title=t["title"], start=t["start"], end=headings[n + 1]["start"] if n + 1 < len(headings) else first_source)
                    for n, t in enumerate(headings) if not any(t["start"] <= e["start"] < (headings[n + 1]["start"] if n + 1 < len(headings) else first_source) for e in self.entries.values())]

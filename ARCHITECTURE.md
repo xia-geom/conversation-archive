@@ -2,80 +2,82 @@
 
 ## Product and authority
 
-The product is a maintained `organized.md` containing selected useful conversation information: self-contained entries, qualified accounts, changing interpretations, important connections and compact provenance. It is not a database product or a full-transcript export.
-
-Original exports and historical bundles are evidence, unchanged. Markdown is the maintained editorial document; internal state is bookkeeping, not a second knowledge base. Exact copies are not independent corroboration. Canonical storage does not establish factual truth.
-
-## Structure
+The product is one maintained `organized.md`: useful, self-contained conversation information, qualified accounts, important changes and compact provenance. Original exports and historical bundles are preserved evidence. Internal state supports processing and recovery; it is not another knowledge base. Canonical storage does not establish truth, and exact copies are not independent corroboration.
 
 ```text
 Private collection (outside Git)
 ├── organized.md             One selected maintained document
 ├── exports/                 Preserved evidence; may remain elsewhere
-└── .state/                  Imports, review work, receipts and recovery
+└── .state/
     ├── dataset-.../         Validated source locations
-    ├── review-.../          Existing source review and patch journals
-    ├── reading-.../         Entry audit, draft answers, checked preview
+    ├── review-.../          Ordinary checked Markdown updates
+    ├── reading-.../         Audit, one answers.json checkpoint, previews
     └── extraction-.../      Optional bounded model attempts
 
 Repository
-├── README.md                Product and executable invented demo
-├── ARCHITECTURE.md           Boundaries and data flow
-├── AGENTS.md                Operating/editorial contract
+├── README.md
+├── ARCHITECTURE.md
+├── AGENTS.md
 ├── .agents/skills/organize-markdown/SKILL.md
-├── conversation_archive/    Import, review, checked edits and reading export
-├── tests/                   Invented regression cases only
+├── conversation_archive/    Import, review, checked edits and publication
+├── tests/                   Invented regressions only
 └── docs/                    Workflow, formats, compatibility, troubleshooting
 ```
 
-These are suggested locations, not instructions to move or delete existing archives. The output of `reading` is a generated publication until the owner explicitly selects it as the maintained document. Do not maintain two independently edited masters. Preview receipts are not another retrieval system.
+These are suggested locations, not instructions to move existing archives. A published reading file becomes the maintained document only by explicit selection. Never maintain two independently edited masters.
 
-## Execution path
+## Execution
 
 ```text
-Original ChatGPT/Claude exports
-    -> normalize / validate / exact source packets
-    -> authorized extraction and editorial review
-    -> organize draft / check / apply
-    -> maintained Markdown
-    -> reading prepare / packet / source
-    -> whole-entry review: keep, revise, or defer
-    -> reading check: proposed text and evidence-access accounting
-    -> reading publish: fresh local Markdown after approval
+Original exports -> normalize -> authorized extraction/editorial review
+                 -> organize draft/check/apply -> maintained Markdown
+
+Maintained Markdown + explicitly selected preserved reference (optional)
+    -> reading prepare --autonomous
+    -> next -> existing Codex session reads and edits -> submit
+    -> repeat only while useful work remains
+    -> check the exact diff -> finish
+    -> fresh local Markdown, only within publication authorization
 ```
 
-The existing `reconciliation.py`, `reconcile_cli.py` and `master_validation.py` retain the checked patch writer. New collections use `--document`; legacy `--master` runs keep their original three-file contract. Optional raw-store tools support exact later-export comparisons; they are not prerequisites.
+The autonomous feature is a work protocol for the agent already running, not a new model launcher. It makes no model calls, uploads or background schedules. No step imports SQL. No database, graph, embedding service, browser app or new runtime dependency is introduced. The existing `reconciliation.py`, `reconcile_cli.py` and `master_validation.py` retain the normal checked writer; raw-store tools remain optional.
 
-No step imports SQL. No graph, embedding service, browser application or remote model is required. An authorized agent can supply reviewed decisions; deterministic code does not invent them. Existing model-transfer permissions and cumulative budgets remain applicable.
+## Small implementation layers
 
-## Two distinct validation jobs
+`reading_document.py` parses supported Markdown headings, protected text and old bundles. It verifies preserved hashes and finite legacy decision scopes. Its title-word and source-availability hints are candidates, not exhaustive contradiction detection.
 
-**Preservation:** original bytes, attribution, IDs, source spans and prior corrections stay recoverable. Do not disable protected-block checks merely to make a file smaller.
+`reading_evidence.py` supplies compatible reference evidence without replacing current prose, follows bounded correction-support identifiers, and decodes known publication wrappers. Same source IDs with different bytes and incompatible decision contexts stop the run. The caller must select the right reference: no directory scan or guarantee of globally latest records is implied.
 
-**Reading quality:** additions belong in the chosen entry, earlier limitations are reconsidered, citations are attached locally, and output is useful without archival machinery. Code checks structure and evidence placement, not semantic truth.
+`reading_review.py` binds input and reference hashes, retrieves whole-entry packets and exact source ranges, and exposes recovered decisions through `@decisions`. Large context is explicitly omitted with a retrieval path, not silently truncated. Unchanged checked context can be reused with its original reviewer attribution and selected excerpts.
 
-`reading_document.py` transiently inspects the existing Markdown convention and recognized preserved bundles. It checks preserved-document hashes, entry boundaries, all body citations and stale index titles. It flags coexisting unavailable-source statements and later additions. Title-word overlap can suggest a misplaced addition, but is neither an event match nor exhaustive contradiction detection.
+`reading_work.py` maintains one atomic `answers.json` checkpoint. `next` prioritizes known findings and includes possible move destinations. `submit` checks the base checkpoint hash, merges only named review items and preserves unanswered work. Exact replay is idempotent. A lock and atomic replacement coordinate cooperating local writers. A valid but unreferenced excerpt cannot leave a poisoned checkpoint.
 
-`reading_review.py` provides exact whole-entry packets, bounded source reading, immutable input binding and review reuse. Source omissions are explicit. Initial coverage requires keep/revise/defer for each entry, supplied by an authorized reviewer rather than a compulsory owner questionnaire. Unchanged reviewed context can reuse its recorded attribution; changed entry, evidence or decision context needs review again.
+`reading.py` validates complete replacement entries and exact claim-local witnesses, builds one index and source list, and publishes to a fresh path. In autonomous mode it additionally requires individual finding outcomes and source-removal dispositions. Low-level manual mode remains available and does not acquire every autonomous gate implicitly.
 
-`reading.py` checks complete replacement entries, exact scoped witnesses and changed source associations. Global presence of a quote is insufficient: a witness must identify a claim and a citation in the reviewed entry. It generates one index, body-derived source lists and selected exact evidence. Missing or omitted sources are labeled external instead of left as broken internal links. Full reports, graph tables and encoded attachments are not republished wholesale.
+## Acceptance is more than a review count
 
-## Editorial and legacy boundaries
+Every initial entry needs keep/revise/defer. A known finding separately needs resolved, false_positive or defer; only a noncritical reading-evidence gap can receive accepted_limit. Resolved text must actually change at its cited location; counterevidence and reasons remain attributed judgments, not machine-proven entailment. Supplied findings are bound to exact entry quotes and the input hash.
 
-The optional [organize-markdown skill](.agents/skills/organize-markdown/SKILL.md) guides semantic review: placement, limitations, contradictions and attribution. New evidence requires rereading the whole affected entry, not just appending text. Historical change is not necessarily contradiction. A scoped correction does not confirm an entire account. Ask the owner only about consequential ambiguity the sources cannot settle.
+Removing a source is either a move with a reviewed, witnessed destination or an explained exclusion. The same accounting covers inherited losses detected against the supplied reference. This preserves provenance without automatically restoring wrong associations. Original files are never edited.
 
-For recognized old bundles, the reader checks entry locators and converts supported active `bind`/`bind_mentions` decisions into recorded answers plus exact original mention scopes. Unknown active operations stop conversion rather than disappearing. This is a bounded compatibility reader, not restored snapshot infrastructure or complete migration acceptance. Other corrections in prose and source-only context still require editorial scope review.
+Critical correction-to-answer references are selected even when they occur inside quoted historical text. Traversal is limited to correction chains, with finite identifier/size budgets; it does not import every transcript recursively. Oversized critical sources need chosen exact excerpts. Unavailable critical support blocks autonomous completion; noncritical access limits are separately reported.
 
-## Safe updates and the primary reader
+Generated source wrappers do not become new evidence on the next pass. Retained text has an exact length/hash; excerpts retain their original-versus-available distinction. Round-trip tests check source text, availability, entry content and decisions, rather than demanding identical full-file hashes when input-version metadata changes.
 
-Manual edits form the baseline for normal updates; stale hashes stop installation. `reading publish` rechecks input, answers, preview and output hash, then atomically creates a fresh file without overwriting existing content. Exact replay is idempotent. It does not change the input, move a CURRENT pointer, authenticate reviewers or upload anything. Hashes detect drift, not malicious rewriting of all records; retain ordinary backups.
+## Authorization and stopping
 
-The primary reader must be able to search the Markdown, understand an entry independently and identify available evidence. A path or source ID is not an accessible ChatGPT link. Output distinguishes included exact text from external evidence. Actual upload remains separate.
+Manual edits form the current-document baseline. Stale input and reference hashes stop updates rather than overwriting that baseline.
 
-Test that real workflow before adding another format or service. ChatGPT semantic-search quality requires a separate synthetic evaluation; local substring checks do not measure retrieval recall. File extensions, tags and numeric priority fields do not themselves configure native Project retrieval.
+Preparation requires an input-scope statement. Optional `--publish-to` records authorization for one fresh destination. `finish` recomputes the preview and refuses pending findings, deferred judgments or missing critical evidence. Without a destination it returns a preview for approval. It does not overwrite original/manual files or choose a global current archive.
 
-## Acceptance
+Progress distinguishes pending work, owner questions, missing evidence, readiness and publication. Empty submissions report no_progress; accepted revisions have a finite cap. That cap is not a token/dollar budget and does not count rejected attempts. The agent must stop repeated failures and respect existing model-transfer and spending authorization.
 
-Run `python3 -m unittest discover -s tests -v`, the Markdown demo and `python3 -m conversation_archive reading --help`. CI uses synthetic data only. Tests cover misplaced additions, stale limitations/indexes, local evidence associations, Unicode spans, preserved confirmations, unavailable sources, deferral, deterministic output, changed inputs, reviewer attribution, manual edits and interrupted publication.
+Hashes, roles and scope notes prevent accidental drift; they are not authentication or protection from a process rewriting all files. Sources cannot grant themselves permissions. Code checks exact text and declared scope, not the truth of an editorial explanation.
 
-Retired SQL/graph/snapshot/HTML engines remain in Git history; [compatibility](docs/compatibility.md) explains existing-data handling. No automatic semantic repair, medical interpretation, Gemini adapter, cloud synchronization, private-data publication or unattended acceptance of model conclusions is claimed.
+## Compatibility, reader and tests
+
+The 1.1 reader accepts verified complete 1.0 publication blocks. Old excerpts without a retained-text hash need original recovery; old run receipts require fresh preparation rather than automatic approval under stronger rules. Unsupported active legacy operations and incompatible decision contexts still stop conversion. Retired SQL/graph/snapshot tools remain in Git history; see [compatibility](docs/compatibility.md).
+
+The primary reader must reach exact entries, relevant decisions and available sources through the actual interface. A path is not a working ChatGPT source link. Only selected Markdown is furnished to ChatGPT; native semantic-search quality needs a separate evaluation. No medical interpretation, new Gemini adapter, private-archive repair or complete semantic discovery is implied by this code change.
+
+Run `python3 -m unittest discover -s tests -v`, both existing demos and public reading help. CI uses synthetic sources only. Regressions exercise lost correction answers, bad moves, unresolved findings, reference conflicts, stale/concurrent submissions, read-only inputs, resumability and repeated publication.

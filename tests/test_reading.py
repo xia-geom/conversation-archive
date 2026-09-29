@@ -237,6 +237,11 @@ class WorkflowTests(unittest.TestCase):
         self.assertIn(MUSEUM, path.read_text())
         self.assertIn("Unicode offsets", path.read_text())
 
+    def test_source_packets_accept_displayed_uppercase_source_ids(self):
+        path = self.root / "source-packet-uppercase.md"
+        r.source_packet(self.run, "SRC-202", path, 0, 20)
+        self.assertIn("Source: src-202", path.read_text())
+
     def test_missing_and_duplicate_review_never_become_completion(self):
         for reviews in ([], self.answers["reviews"] * 2):
             bad = dict(self.answers, reviews=reviews)

@@ -13,16 +13,22 @@
   "verification_command": ["python3", "-m", "unittest", "discover", "-s", "tests", "-v"],
   "tasks": {
     "organize": {
-      "status": "implemented_agent_assisted_markdown_updates_and_checked_reading_publication",
+      "status": "implemented_agent_assisted_updates_and_opt_in_autonomous_reading_review",
       "guide": "docs/workflow.md",
       "skill": ".agents/skills/organize-markdown/SKILL.md",
-      "modules": ["conversation_archive/reconciliation.py", "conversation_archive/reconcile_cli.py", "conversation_archive/master_validation.py", "conversation_archive/reading.py", "conversation_archive/reading_document.py", "conversation_archive/reading_review.py"],
+      "modules": ["conversation_archive/reconciliation.py", "conversation_archive/reconcile_cli.py", "conversation_archive/master_validation.py", "conversation_archive/reading.py", "conversation_archive/reading_document.py", "conversation_archive/reading_review.py", "conversation_archive/reading_evidence.py", "conversation_archive/reading_work.py"],
       "help": ["python3", "-m", "conversation_archive", "organize", "--help"],
       "reading_help": ["python3", "-m", "conversation_archive", "reading", "--help"],
       "output": "one selected maintained Markdown; publication to a fresh path does not switch authority automatically",
-      "reading_stages": ["prepare", "packet", "source", "check", "publish", "status"],
+      "reading_stages": ["prepare", "next", "submit", "finish", "packet", "source", "check", "publish", "status"],
+      "reading_version": "reading-1.1",
+      "autonomous_review": "opt_in_existing_authorized_agent_session; no new model runner",
+      "autonomous_contract": "reading-work-1.0",
+      "scoped_publication": "optional preauthorization for exactly one fresh local destination",
+      "reference_selection": "explicit same-collection evidence and decision file; no global latest-record discovery",
       "unattended_semantic_integration": false,
       "automatic_event_matching": false,
+      "automatic_model_calls": false,
       "requires_database": false
     },
     "import": {

@@ -40,7 +40,11 @@ def witness(value, doc):
 
 
 def validate_reviews(answers, inv, doc, require_complete=True):
-    need(isinstance(answers, dict) and set(answers) == {"version", "run_id", "input_sha256", "reviewer", "reviewer_role", "selection_note", "reviews", "excerpts"}, "Unexpected answer document fields")
+    fields = {"version", "run_id", "input_sha256", "reviewer", "reviewer_role", "selection_note", "reviews", "excerpts"}
+    if inv.get("work"):
+        from .reading_work import EXTRA_FIELDS
+        fields |= EXTRA_FIELDS
+    need(isinstance(answers, dict) and set(answers) == fields, "Unexpected answer document fields")
     need(answers["version"] == VERSION and answers["run_id"] == inv["run_id"]
          and answers["input_sha256"] == doc.fingerprint, "Answers belong to another frozen input")
     need(isinstance(answers["reviewer"], str) and answers["reviewer"].strip()
@@ -75,7 +79,7 @@ def validate_reviews(answers, inv, doc, require_complete=True):
                  and isinstance(item["claim"], str) and item["claim"].strip(), "A review witness needs an explicit claim and relation")
             scope = before if item["relation"] == "removes" else after
             need(item["claim"] in scope, "Witness claim is not in the reviewed entry")
-            need(item["source_id"] in references(scope), "Witness source is not cited in this entry; global presence is insufficient")
+            need(item["source_id"] in references(scope, include_external=True), "Witness source is not cited in this entry; global presence is insufficient")
             if item["relation"] == "removes":
                 need(item["claim"] not in after, "Removal witness did not remove the stated claim")
         reviews[eid] = review
@@ -88,6 +92,9 @@ def validate_reviews(answers, inv, doc, require_complete=True):
         witnessed = {w["source_id"] for w in review["witnesses"]}
         changed = {x for x in old_refs ^ new_refs if x.lower().startswith("src-")}
         need(changed <= witnessed, "Every changed entry-source association needs an exact scoped witness")
+    if inv.get("work"):
+        from .reading_work import validate_outcomes
+        validate_outcomes(answers, inv, doc, entries, reviews, require_complete)
     excerpts = {}
     for item in answers["excerpts"]:
         need(set(item) == {"source_id", "source_sha256", "start", "end", "quote"}, "Unexpected excerpt fields")
@@ -112,22 +119,11 @@ def rewrite_links(text, included):
     return "".join(parts)
 
 
-def render(doc, entries, reviews, excerpts, max_source_chars, selection_note="", authors=None):
+def render(doc, entries, reviews, excerpts, max_source_chars, selection_note="", authors=None, strict=False):
     need(type(max_source_chars) is int and 0 <= max_source_chars <= 20000, "Invalid automatic evidence limit")
-    refs = {ref for e in entries.values() for ref in e["refs"]} | set(references(doc.decisions))
-    evidence, access = {}, {}
+    from .reading_evidence import evidence_plan
+    evidence, access, full_hashes, dependencies, missing = evidence_plan(doc, entries, excerpts, max_source_chars, strict)
     entry_anchors = {eid.lower() for eid in entries}
-    for ref in sorted(refs - entry_anchors):
-        source = doc.sources.get(ref)
-        if ref in excerpts:
-            evidence[ref] = excerpts[ref]
-            access[ref] = "selected_exact_excerpt"
-        elif source and len(source["text"]) <= max_source_chars and not DATA.search(source["text"]):
-            evidence[ref] = source["text"]
-            access[ref] = "complete_available_block"
-        else:
-            access[ref] = "external_not_included" if source else "not_available_in_input"
-    need(set(excerpts) <= refs, "Selected evidence must be cited by the reading document")
     included = entry_anchors | set(evidence)
     deferred = [eid for eid, review in reviews.items() if review["decision"] == "defer"]
     out = ["# Organized conversation record\n",
@@ -162,8 +158,13 @@ def render(doc, entries, reviews, excerpts, max_source_chars, selection_note="",
         out.append("\n# Selected source evidence\n\nThese blocks preserve exact text available in the input, not authenticated original app records. They may contain historical prompts or superseded wording; read their context and scoped corrections.\n")
     for ref, body in evidence.items():
         out.append('\n<a id="' + ref + '"></a>\n\n## Source ' + ref.upper() + "\n\n")
-        out.append("Evidence access: " + access[ref] + ". Full input block SHA-256: `" + doc.sources[ref]["sha256"] + "`.\n\n")
+        out.append("Evidence access: " + access[ref] + ". Full input block SHA-256: `" + full_hashes[ref] + "`.\n")
+        retained_hash = " " + sha(body) if access[ref] == "selected_exact_excerpt" else ""
+        out.append("\n<!-- reading-text " + str(len(body)) + retained_hash + " -->\n\n")
         out.append(quote_block(body))
+        if dependencies.get(ref):
+            links = ", ".join("[" + x + "](#" + x + ")" for x in dependencies[ref])
+            out.append(rewrite_links("\nEvidence dependencies: " + links + "\n", included))
     text = "".join(out)
     need(not DATA.search(text), "Encoded media reached the reading output")
     live = tokens(text)
@@ -182,15 +183,34 @@ def build(run, answers_path, max_source_chars=1600):
     for eid, review in reviews.items():
         old = inv["reused_authors"].get(eid)
         authors[eid] = old["actor"] if old and old["review_sha256"] == sha(encoded(review)) else {"name": answers["reviewer"], "role": answers["reviewer_role"]}
-    text, access = render(doc, entries, reviews, excerpts, max_source_chars, answers["selection_note"], authors)
+    text, access = render(doc, entries, reviews, excerpts, max_source_chars, answers["selection_note"], authors, strict=bool(inv.get("work")))
     receipt = dict(version=VERSION, status="checked", run_id=inv["run_id"], input_sha256=doc.fingerprint,
         answers_sha256=sha(encoded(answers)), output_sha256=sha(text), output_bytes=len(text.encode()),
         reviewer=answers["reviewer"], reviewer_role=answers["reviewer_role"], review_authors=authors,
         selection_note=answers["selection_note"], nonentry_context_ranges=inv["nonentry_context_ranges"],
         max_source_chars=max_source_chars, decisions_sha256=sha(doc.decisions), reviews=list(reviews.values()),
-        entry_basis=inv["entry_basis"], evidence_access=access,
+        entry_basis=inv["entry_basis"], evidence_access=access, excerpts=answers["excerpts"],
         source_bytes_unchanged=True, semantic_verification="attributed review; no automatic entailment or event verification",
         deferred_entries=[eid for eid, rev in reviews.items() if rev["decision"] == "defer"])
+    receipt["reference"] = inv.get("reference")
+    receipt["entries_without_included_sources"] = [eid for eid, e in entries.items()
+        if any(ref.startswith("src-") for ref in e["refs"])
+        and not any(access.get(ref) in {"complete_available_block", "selected_exact_excerpt"} for ref in e["refs"] if ref.startswith("src-"))]
+    if inv.get("reference"):
+        text = text.replace("## Entry index\n", "Additional evidence/decision input SHA-256: `" + inv["reference"]["sha256"] + "`.\n## Entry index\n", 1)
+        receipt.update(output_sha256=sha(text), output_bytes=len(text.encode()))
+    if inv.get("work"):
+        receipt.update(work_findings=inv["work"]["findings"], issue_resolutions=answers["issue_resolutions"],
+                       source_changes=answers["source_changes"], reference=inv.get("reference"))
+        counts = dict(Counter(x["status"] for x in answers["issue_resolutions"]))
+        # Keep unresolved findings visible even for an explicitly authorized
+        # manual publication; the autonomous finish path stops at deferrals.
+        note = "Audit finding outcomes (attributed review): " + json.dumps(counts, sort_keys=True) + ". Not factual verification.\n"
+        for item in answers["issue_resolutions"]:
+            if item["status"] == "defer":
+                note += "Unresolved finding " + item["issue_id"] + ":\n" + quote_block(item["reason"])
+        text = text.replace("## Entry index\n", note + "## Entry index\n", 1)
+        receipt.update(output_sha256=sha(text), output_bytes=len(text.encode()))
     return inv, doc, entries, text, receipt
 
 
@@ -206,6 +226,7 @@ def check(run, answers, output, max_source_chars=1600):
             "Exact output SHA-256: `" + receipt["output_sha256"] + "`\n",
             f"Entries: {len(entries)}. Deferred: {len(receipt['deferred_entries'])}.\n",
             "Evidence access counts: " + json.dumps(dict(Counter(receipt["evidence_access"].values()))) + "\n",
+            "Entries without included SRC passages: " + json.dumps(receipt["entries_without_included_sources"]) + "\n",
             "The output regenerates one index and complete body-derived source lists. Unselected evidence links are explicitly external, not dangling. Full reports, binary payloads and snapshot tables are excluded; supported active decisions are retained.\n"]
         for eid, e in entries.items():
             if e["text"] != doc.entries[eid]["text"]:
@@ -233,7 +254,7 @@ def publish(run, answers, preview, output, approved=False):
     if out.exists():
         need(not out.is_symlink() and sha(read_utf8(out)) == receipt["output_sha256"], "Output already exists with different content; preserve manual edits")
         return {"status": "already_published", "output_sha256": receipt["output_sha256"]}
-    need(sha(read_utf8(inv["input_path"])) == doc.fingerprint, "Input changed before publication")
+    current(run)  # Recheck every explicitly selected input, including reference evidence.
     fresh_file(out, text.encode())
     return {"status": "published", "output_sha256": receipt["output_sha256"], "entries": len(doc.entries),
             "deferred": len(receipt["deferred_entries"]), "original_unchanged": True}
@@ -246,6 +267,21 @@ def main(argv=None):
     p.add_argument("--input", type=Path, required=True)
     p.add_argument("--run", type=Path, required=True)
     p.add_argument("--reuse", type=Path)
+    p.add_argument("--reference", type=Path, help="Explicit same-collection evidence/decision reference; does not replace entry prose")
+    p.add_argument("--autonomous", action="store_true")
+    p.add_argument("--reviewer", default="Codex")
+    p.add_argument("--scope-note", default="")
+    p.add_argument("--publish-to", type=Path, help="Preauthorize only this fresh output; no upload or input overwrite")
+    p.add_argument("--findings", type=Path, help="Input-bound exact-quote findings JSON")
+    p.add_argument("--max-submissions", type=int, default=200)
+    for command in ("next", "submit", "finish"):
+        p = commands.add_parser(command)
+        p.add_argument("--run", type=Path, required=True)
+        if command == "next":
+            p.add_argument("--output", type=Path, required=True)
+            p.add_argument("--size", type=int, default=5)
+        elif command == "submit":
+            p.add_argument("--submission", type=Path, required=True)
     for command in ("packet", "source", "check", "publish", "status"):
         p = commands.add_parser(command)
         p.add_argument("--run", type=Path, required=True)
@@ -270,7 +306,16 @@ def main(argv=None):
     a = parser.parse_args(argv)
     try:
         if a.command == "prepare":
-            result = prepare(a.input, a.run, a.reuse)
+            result = prepare(a.input, a.run, a.reuse, a.reference, a.autonomous, a.reviewer,
+                             a.scope_note, a.publish_to, a.findings, a.max_submissions)
+        elif a.command in {"next", "submit", "finish"}:
+            from .reading_work import next_task, submit, finish
+            if a.command == "next":
+                result = next_task(a.run, a.output, a.size)
+            elif a.command == "submit":
+                result = submit(a.run, a.submission)
+            else:
+                result = finish(a.run)
         elif a.command == "packet":
             result = packet(a.run, a.entries, a.output, a.max_source_chars)
         elif a.command == "source":
