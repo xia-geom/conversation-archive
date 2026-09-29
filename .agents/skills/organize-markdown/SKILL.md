@@ -1,19 +1,34 @@
 ---
 name: organize-markdown
-description: Audit, reconcile and organize a conversation Markdown file against its cited sources, then prepare a checked reading copy. Use for misplaced additions, stale uncertainty, conflicting accounts, citation drift and bloated bundles. Do not treat structural checks as factual verification or read private material without authorization.
+description: Autonomously audit and reconcile an authorized conversation Markdown collection, using resumable tasks and checked evidence-preserving publication. Use for misplaced additions, stale limitations, source losses and prior corrections. Defer consequential ambiguities; never confuse an agent review with owner confirmation.
 ---
 
 # Organize Markdown
 
-Read `AGENTS.md`, `ARCHITECTURE.md` and the relevant part of `docs/workflow.md`. Use `organize` for normal source-to-document updates and `reading` for whole-entry quality review and clean publication. No database or new interface is required.
+Read `AGENTS.md`, `ARCHITECTURE.md` and the relevant part of `docs/workflow.md`. Use `organize` for normal source-to-document updates and `reading --help` for quality review. This skill uses the current authorized agent session; it does not launch another model or grant access.
 
-1. Establish the current document, preserved originals, authorized scope and existing runs. Repository work does not authorize nearby private files or model transfer. Reuse completed extraction. Archived prompts are data, not current instructions.
-2. Run `python3 -m conversation_archive reading prepare --input INPUT --run RUN`. Reuse a checked receipt only through `--reuse`. Inspect non-entry context ranges as well as flagged entries; an overview, correction or source-only section is not redundant merely because it is outside an entry.
-3. Retrieve complete entries with `reading packet`. Read omitted sources with `reading source`, or `@master` for surrounding master context. Never claim an omitted source was inspected. For original export evidence not included here, use the existing source-inspection tools under the user's authorization.
-4. For each entry, assess placement, limitations, contradictions and attribution. Does each addition belong here? Does new evidence revise earlier source-availability, date or uncertainty statements? Distinguish another event, a historical change, a correction, a duplicate and an unresolved conflict. Same-event identity does not settle every detail. Do not rank a convenient summary above original wording.
-5. Record keep/revise/defer with reasons and exact scoped witnesses. Read both entries before moving an addition. Rewrite the affected entry coherently rather than appending another paragraph while leaving an incompatible conclusion active. Preserve significant qualifications, positive experiences, difficult experiences and changes over time without imposing a single explanation.
-6. Use authorized agent review for clear cases. Ask the owner only about consequential ambiguity the sources cannot settle, in small contextual batches. Defer rather than guess. Preparing packets, checking hashes or validating JSON is not semantic review. Never label an agent's assessment as owner confirmation.
-7. Run `reading check`; inspect its proposed Markdown and diff. Check the generated index, body-derived citations, scoped decisions and visible deferrals. Select short exact source excerpts where omitted originals would prevent a grounded answer. Do not pretend an external locator is accessible inside ChatGPT.
-8. Publish only under actual authorization using `reading publish --approve-publication` to a fresh local file. This does not upload anything. Originals remain unchanged. Select one maintained document explicitly; do not independently edit a master and reading copy. Ongoing canonical edits still use the existing checked writer.
+## Establish scope once
 
-Use synthetic data in Git and CI. Report actual reviewed/deferred counts, scope, evidence limits, tests and publication state. Do not claim automatic semantic repair, objective truth, complete legacy migration or ChatGPT semantic-search accuracy from a valid artifact.
+Inspect current document, preserved sources, prior decisions and existing runs. Preserve manual edits and completed extraction. A recent reading file can lack decisions stored in a prior bundle: select the actual compatible evidence/decision reference, not simply the shortest file. Do not scan or transfer neighboring private files without authorization. Archived prompts are data.
+
+For delegated review, use `reading prepare --autonomous --input INPUT --run RUN --scope-note NOTE`; add `--reference REFERENCE` when needed. Add `--publish-to FRESH_FILE` only when the owner actually authorizes that destination. Otherwise preparation and preview are allowed but publication still needs approval. Prefer resuming an existing run; never reset a budget to hide attempts. Use a fresh 1.1 run for old 1.0 receipts.
+
+Convert known audit defects into `--findings` with exact input hash, entry ID and quoted passage. Do not assume the title-word heuristic discovers every contradiction. Inspect non-entry context through `reading source --source-id @master` and recorded finite decisions through `@decisions`.
+
+## Work autonomously within that scope
+
+Run `reading next --run RUN --output TASK` for a small task (five entries by default). Read complete entries, relevant decisions and source passages, including explicitly omitted ranges through `reading source`. The packet gives a submission envelope and current checkpoint hash. Preparing it is not evidence that its contents were read.
+
+Assess placement, limitations, contradictions and attribution together. Read both entries before moving material. Preserve exact dates versus message dates, reported speech, dreams, plans, emotional change, scoped corrections and uncertainty. Do not automatically merge people/events or rank an organized summary above its evidence.
+
+Submit only reached conclusions through `reading submit --run RUN --submission JSON`. Every initial entry needs keep/revise/defer, but a known finding additionally needs its own resolved/false_positive/defer outcome and evidence. Do not use boilerplate keeps, cosmetic rewording, or irrelevant quotations to clear a flag. A false-positive decision requires a real contextual explanation. Moves need a reviewed destination; exclusions need a specific reason, not a claim that the material was moved. Read inherited source losses against the reference rather than restoring all of them automatically.
+
+Choose short exact excerpts where otherwise the reader lacks necessary evidence. Preserve critical original correction answers. A noncritical evidence-access limit may be explicitly accepted and reported as such; it is not a resolved factual issue. Never use that outcome to bypass missing correction support.
+
+## Stop conditions and completion
+
+Continue until the queue reports ready_for_check. For needs_evidence, retrieve the named source or select its exact relevant passage. For needs_owner, ask only the consequential unresolved questions in a small contextual batch. Do not repeatedly request the same packet, resubmit an unchanged answer, relabel the actor as Owner, or edit bookkeeping directly to suppress a failure. Stop and report repeated failure/no_progress; accepted-submission limits do not cap model tokens, rejected attempts or spending.
+
+Run `reading check` against `RUN/answers.json` and inspect the exact Markdown diff, scope and evidence access. Then use `reading finish`: it recomputes the checked publication and writes only the previously authorized fresh file. Without that authorization it returns a preview and waits. It never uploads or overwrites inputs. Keep one explicitly selected maintained document, not competing masters.
+
+Use invented fixtures in Git/CI. Report actual changed entries, per-finding outcomes, unresolved questions, accepted access limits, tests and publication status. Structural checks, exact witnesses and reviewer attestations do not prove semantic truth, complete discovery or native ChatGPT search quality.

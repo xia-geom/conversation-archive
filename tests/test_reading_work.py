@@ -269,6 +269,30 @@ class WorkTests(unittest.TestCase):
         self.assertIn("Same guide only", self.doc.decisions)
         self.assertEqual(self.inv["reference"]["sha256"], sha(old.read_bytes()))
 
+    def test_recovered_decisions_are_reachable_through_primary_reader(self):
+        reference = self.root / "reference.md"; reference.write_text(legacy_bundle(text(evidence=CLAIM + "\n")))
+        self.input.write_text(text(evidence=CLAIM + "\n"))
+        self.start(reference=reference)
+        packet = self.root / "task.md"; next_task(self.run, packet)
+        self.assertIn("Same guide only", packet.read_text())
+        exact = self.root / "decisions.md"
+        r.source_packet(self.run, "@decisions", exact)
+        self.assertIn(quote_block(self.doc.decisions), exact.read_text())
+        self.assertIn(sha(self.doc.decisions), exact.read_text())
+
+    def test_checked_autonomous_reuse_keeps_selected_excerpts(self):
+        self.input.write_text(text(evidence="x" * 1800 + CLAIM))
+        self.start()
+        issue = self.inv["work"]["findings"][0]
+        self.send([review(self.doc)], [self.issue_result(issue)], excerpts=[proof(self.doc)])
+        result = finish(self.run)
+        second = self.root / "second"
+        r.prepare(self.input, second, reuse=Path(result["preview"]) / "preview.json",
+                  autonomous=True, scope_note="Same authorized synthetic scope.")
+        inv, doc, a = work_state(second)
+        self.assertEqual(len(a["excerpts"]), 1)
+        self.assertEqual(progress(inv, doc, a)["status"], "ready_for_check")
+
     def test_reference_change_invalidates_next_and_finish(self):
         old = self.root / "reference.md"; old.write_text(text()); self.start(reference=old)
         old.write_text(old.read_text() + "changed")

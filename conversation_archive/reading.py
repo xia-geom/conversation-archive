@@ -189,7 +189,7 @@ def build(run, answers_path, max_source_chars=1600):
         reviewer=answers["reviewer"], reviewer_role=answers["reviewer_role"], review_authors=authors,
         selection_note=answers["selection_note"], nonentry_context_ranges=inv["nonentry_context_ranges"],
         max_source_chars=max_source_chars, decisions_sha256=sha(doc.decisions), reviews=list(reviews.values()),
-        entry_basis=inv["entry_basis"], evidence_access=access,
+        entry_basis=inv["entry_basis"], evidence_access=access, excerpts=answers["excerpts"],
         source_bytes_unchanged=True, semantic_verification="attributed review; no automatic entailment or event verification",
         deferred_entries=[eid for eid, rev in reviews.items() if rev["decision"] == "defer"])
     receipt["reference"] = inv.get("reference")

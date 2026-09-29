@@ -2,20 +2,18 @@
 
 [Architecture](../ARCHITECTURE.md) · [Formats](formats.md) · [Troubleshooting](troubleshooting.md)
 
-The product is one useful Markdown file. An authorized agent normally handles these stages. Import, extraction, review, installation and publication are not interchangeable claims of completion. No SQL, embedding service, graph server or HTML framework is required.
+The product is one useful Markdown file. An authorized agent normally handles these stages. Import, extraction, review, installation and publication are different completion claims. No SQL, vector index, graph server or HTML framework is required.
 
 ## 1. Preserve inputs and import
 
-Original exports may remain where they are. Use `examples/exports.example.toml`; paths are relative to the configuration file. Implemented adapters are ChatGPT and Claude. Unsupported formats, including Gemini, need a real adapter rather than relabeling data.
+Original exports may remain where they are. Use `examples/exports.example.toml`; paths are relative to the configuration file. Implemented adapters are ChatGPT and Claude. Unsupported formats need a real adapter rather than relabeling data.
 
 ```sh
 python3 -m conversation_archive normalize --config /path/to/inputs.toml --output /path/to/collection/.state/dataset-01
 python3 -m conversation_archive validate --dataset /path/to/collection/.state/dataset-01
 ```
 
-Datasets are not overwritten. Import preserves branches, roles, exact text, source locators and attachment availability, not organized conclusions. Unknown metadata and unavailable media remain explicit.
-
-For a new document only:
+Datasets are not overwritten. Import preserves branches, roles, exact text, source locators and attachment availability. Unknown metadata and unavailable media remain explicit. For a new document only:
 
 ```sh
 python3 -m conversation_archive organize init --document /path/to/collection/organized.md
@@ -30,15 +28,13 @@ python3 -m conversation_archive organize prepare --dataset /path/to/collection/.
 python3 -m conversation_archive organize packet --run /path/to/collection/.state/review-01
 ```
 
-Packets default to readable Markdown. `--format json`, `--packet-id` and a fresh `--output` support programmatic or selected reading, including already covered evidence. Rendering is not a review decision.
+Packets default to Markdown. `--format json`, `--packet-id` and a fresh `--output` support selected reading, including covered evidence. Rendering is not reviewing. For supplied conversation IDs, including Claude, use `--membership /path/to/selection.json` instead of `--project-id`. Membership includes `conversation_ids`, `observed_at`, `evidence` and `project_name`; missing conversations remain reported. Do not guess live app membership.
 
-For supplied conversation IDs, including Claude, use `--membership /path/to/selection.json` instead of `--project-id`. Membership includes `conversation_ids`, `observed_at`, `evidence` and `project_name`. Do not guess live app membership. Missing requested conversations remain reported.
-
-Read the current document and relevant complete source context. Select useful reports, decisions, projects, preferences and qualifications within the user's scope. Separate plans from completed actions and assistant suggestions from user statements. Do not merge unrelated Health and Emotion collections.
+Read current entries and complete relevant sources. Select useful reports, decisions, projects, preferences and qualifications within scope. Separate plans, actions and assistant suggestions. Do not merge unrelated Health and Emotion collections.
 
 ## 3. Optional bounded model extraction
 
-An authorized agent can review packets directly. The optional controller produces candidate information with exact witnesses and cumulative usage records:
+The current authorized agent may review packets directly. The optional controller produces candidates with exact witnesses and usage records:
 
 ```sh
 python3 -m conversation_archive.autonomy plan --run /path/to/collection/.state/review-01 --output /path/to/collection/.state/extraction-01 --model YOUR_SUPPORTED_MODEL --effort medium
@@ -46,23 +42,21 @@ python3 -m conversation_archive.autonomy run --state /path/to/collection/.state/
 python3 -m conversation_archive.autonomy status --state /path/to/collection/.state/extraction-01
 ```
 
-Planning/status make no model call. Running transfers packet text; `--allow-model-transfer` requires real authorization, not permission inferred from this guide. Exact spans and basic attribution can be checked mechanically; paraphrase and interpretation cannot. Candidates are not automatically installed.
-
-Resume the same extraction directory. Budgets are cumulative within it, checked between calls, and can overshoot on the final call. They are not a dollar cap or global subscription counter. Unknown telemetry and interrupted paid attempts require audit, not blind retry. Read-only settings are not hermetic isolation.
+Planning/status make no model call. Running transfers packet text; the flag requires real authorization. Candidates are not automatically installed. Resume the same directory. Budgets are cumulative within it, checked between calls, and can overshoot on the final call; they are not a dollar cap. Unknown telemetry or interrupted paid attempts require audit, not blind retry. Read-only settings are not hermetic isolation.
 
 ## 4. Review and compose
 
-Compare proposed information with existing entries: already represented, complementary, distinct, uncertain or excluded. Read the whole affected entry before incorporating an addition. Reassess placement, prior limitations, contradictions and attribution together; do not leave an old incompatible statement above a new appended correction.
+Compare proposed information with existing entries: represented, complementary, distinct, uncertain or excluded. Reassess the whole affected entry: placement, limitations, contradictions and attribution. Do not append new evidence while leaving an incompatible earlier conclusion active.
 
 ```sh
 python3 -m conversation_archive organize record --run /path/to/collection/.state/review-01 --document /path/to/reviewed-findings.json
 ```
 
-The [format guide](formats.md) describes covered pieces, findings and quotations. An explicitly authorized agent may review; do not present its decisions as human confirmation. Ask the owner only about consequential ambiguity the sources cannot settle. Keep unresolved disagreements visible without inventing dates, motives, identities or outcomes.
+The [format guide](formats.md) specifies covered pieces, findings and quotations. Authorized agent review is not owner confirmation. Ask the owner only about consequential ambiguity the sources cannot settle. Preserve unresolved disagreements rather than inventing dates, motives or identities.
 
-## 5. Preview and apply ordinary document updates
+## 5. Ordinary checked updates
 
-An edits JSON names `document_sha256`, `batch_id`, reviewed `decision_ids`, each finding's disposition and exact unique `before`/`after` patches.
+An edits JSON names `document_sha256`, `batch_id`, reviewed `decision_ids`, dispositions and exact unique `before`/`after` patches.
 
 ```sh
 python3 -m conversation_archive organize draft --run /path/to/collection/.state/review-01 --edits /path/to/edits.json --output /path/to/collection/.state/update-01.json
@@ -71,71 +65,84 @@ python3 -m conversation_archive organize apply --run /path/to/collection/.state/
 python3 -m conversation_archive organize status --run /path/to/collection/.state/review-01
 ```
 
-The ordinary diff is not a new UI. Applying needs approval within the user's authorization. The journal preserves approved changes; new collections need no separate correction reports. JSON check output supplies automated status. Stale edits are refused, exact installed replay returns `already_applied`, and incomplete installation is recoverable. Cooperating writers share a document lock; arbitrary external editors are not a distributed transaction.
+Apply only within actual user authorization. The journal preserves approved changes; new collections need no separate correction reports. Stale edits are refused, exact replay returns `already_applied`, and incomplete installation is recoverable. Cooperating writers share a document lock, not a distributed transaction with arbitrary external editors. Status covers the frozen selection and declared text accounting, not uninspected media or live app completeness.
 
-Status distinguishes pending, partial, reviewed, integrated and unresolved work. It covers the frozen selection and declared text accounting, not uninspected media or live app completeness. These legacy structural checks are not an automatic semantic quality audit; use the next stage for a clean reading publication.
+## 6. Autonomous entry audit and reading publication
 
-## 6. Entry audit, reconciliation and clean reading publication
+Use the [organize-markdown skill](../.agents/skills/organize-markdown/SKILL.md) for delegated quality review. The current Codex session performs editorial reasoning. The commands supply bounded tasks, checked submission and local publication; they do not launch another model.
 
-Use this for an existing organized document or a recognized preservation bundle. It solves a different problem from initial extraction: text can be copied accurately yet attached to the wrong entry, and valid additions can leave old limitations or indexes stale. The optional [organize-markdown skill](../.agents/skills/organize-markdown/SKILL.md) supplies the editorial workflow.
-
-### Audit and inspect
+### Prepare the scope once
 
 ```sh
-python3 -m conversation_archive reading prepare --input /path/to/collection/organized.md --run /path/to/collection/.state/reading-01
-python3 -m conversation_archive reading packet --run /path/to/collection/.state/reading-01 --entries E1001 E1002 --output /path/to/collection/.state/packet.md
+python3 -m conversation_archive reading prepare \
+  --input /path/to/collection/organized.md \
+  --reference /path/to/preserved-bundle.md \
+  --run /path/to/collection/.state/reading-01 \
+  --autonomous \
+  --scope-note 'Review these supplied records, preserve evidence and scoped decisions.' \
+  --publish-to /path/to/collection/organized-reviewed.md
 ```
 
-Replace example IDs with IDs from the audit. The run contains `audit.json`, `audit.md` and `answers.template.json`. It binds the original input hash. It reports stale index titles, body citations missing from headers, unavailable targets, possible stale limitations and suspicious additions. The placement heuristic uses title-word overlap only; it never automatically moves or merges events and it is not exhaustive contradiction detection.
+`--reference` is optional and must name a compatible evidence/decision file. The maintained document remains the prose baseline. The reference supplies missing sources and compatible prior decisions; conflicting same-ID evidence or different nonempty decision contexts stop the run. Shared entry IDs alone are insufficient. This does not discover the latest records outside the selected files.
 
-Packets include full entry text. Source limits are explicit. When a source does not fit the packet, read its exact character ranges:
+Omit `--publish-to` unless the owner authorizes that fresh destination. It cannot name an existing file, either input, or run bookkeeping. It is not permission to upload, overwrite, or change the maintained-document pointer. `--reviewer` defaults to Codex; the role is fixed to authorized_agent.
+
+The run contains a frozen audit, template, and one working `answers.json`. Resume that run. `--max-submissions` bounds accepted changes (default 200), not rejected attempts, tokens or spending. Keep existing external-model budgets and stop repeated no-progress/failure.
+
+Known report findings can be supplied with `--findings /path/to/findings.json`:
+
+```json
+{
+  "input_sha256": "EXACT_HASH_OF_SELECTED_INPUT",
+  "findings": [
+    {"entry_id": "E1001", "quote": "An exact passage in that entry.", "reason": "Why this specific passage needs review."}
+  ]
+}
+```
+
+Replace placeholders with real local IDs, text and hashes; keep private findings outside Git. This supplements lexical flags rather than claiming exhaustive discovery. The audit also tracks source associations missing relative to the selected reference and entries with no included SRC evidence.
+
+### Next task, read, submit
 
 ```sh
-python3 -m conversation_archive reading source --run /path/to/collection/.state/reading-01 --source-id src-202 --start 0 --length 20000 --output /path/to/collection/.state/source-range.md
+python3 -m conversation_archive reading next --run /path/to/collection/.state/reading-01 --output /path/to/task-01.md
+python3 -m conversation_archive reading source --run /path/to/collection/.state/reading-01 --source-id src-202 --start 0 --length 20000 --output /path/to/source-range.md
+python3 -m conversation_archive reading submit --run /path/to/collection/.state/reading-01 --submission /path/to/submission-01.json
 ```
 
-Use `--source-id @master` to read the non-entry context ranges named by the audit. This reaches overviews, prose corrections and source-only navigation that a naive entry-only export would overlook. Offsets count Unicode characters, not UTF-8 bytes. Missing sources remain missing; no model should fabricate their contents.
+`next` selects five entries by default (`--size` allows 1–10) and can add candidate move destinations up to 20 total. The packet includes complete entry text, explicit source omissions, known findings, prior scoped reviews, a checkpoint hash and an empty submission envelope. Source omissions are not claims of inspection. Use `@master` for non-entry context and `@decisions` for exact recovered decisions. Offsets count Unicode characters, not bytes.
 
-### Record an attributed review
+A submission names `run_id`, `base_answers_sha256`, and arrays `reviews`, `issue_resolutions`, `source_changes`, `excerpts`. Each array is bounded at 100 items. Only supplied IDs are replaced; unanswered work survives. Optional `selection_note` refines the publication scope. Optional `discard` removes explicitly named draft items, not evidence or source files. Concurrent stale submissions are rejected; replay returns `already_recorded`; an empty unchanged submission returns `no_progress`.
 
-Copy the answer template to a private working file. Set `reviewer`, `reviewer_role` (`owner` or `authorized_agent`) and `selection_note`. The last field explains why the selected reading content is adequate after inspecting material outside entries; a reduced file is not a lossless archive replacement.
+Each review contains `entry_id`, packet `basis`, `decision` (keep/revise/defer), `reason`, separate `checks` for placement/limitations/contradictions/attribution, and `witnesses`. Only a revision has `replacement`: one complete entry with the same ID. A witness names `source_id`, `source_sha256`, Unicode `start`/`end`, exact `quote`, literal local `claim`, and relation supports/qualifies/removes. Code checks quotation and local association, not semantic entailment.
 
-Each `reviews` item contains:
+Each known issue separately needs `issue_id`, `status`, `reason`, and exact source `witnesses` without claim/relation. Resolved passages must actually change; false_positive preserves the disputed passage with relevant counterevidence and explanation; defer prevents autonomous completion. Generic keeps cannot clear issues. Cosmetic rewriting is not a semantic repair. Only noncritical evidence-access gaps can be accepted_limit, visibly distinct from resolved.
 
-- `entry_id` and the exact `basis` shown in its packet;
-- `decision`: `keep`, `revise` or `defer`, with a substantive `reason`;
-- `checks`: separate explanations for `placement`, `limitations`, `contradictions` and `attribution`;
-- `witnesses`: exact evidence for revised claims; `replacement` only for a revision.
+Each removed source needs `entry_id`, `source_id`, action move/exclude, `target_entry_id`, and reason. A move needs its destination reviewed and the source locally witnessed there. Exclusion uses a null destination and explains why evidence should not support that entry. The same rule covers inherited losses; do not restore erroneous old links wholesale. A deferred inherited loss stays unresolved.
 
-A witness names `source_id`, `source_sha256`, `start`, `end`, exact `quote`, literal `claim` and `relation` (`supports`, `qualifies`, `removes`). The claim and citation must occur in that reviewed entry; finding a quotation elsewhere in the file is insufficient. Changed entry-source associations require witnesses. A replacement contains one complete entry with the same ID, not an unscoped patch that can spill into neighbors. Moving an addition requires assessment of both entries. Code verifies declared scope and exact text, not whether an explanation entails a conclusion.
+Select useful short `excerpts` with source_id/source_sha256/start/end/quote when length-based selection omits necessary evidence. Original compact answers supporting retained corrections are included through bounded correction references, including identifiers inside historical quoted text. Missing critical support blocks completion; a larger original may need an exact excerpt. Do not recursively import every old transcript.
 
-Every initial entry needs an explicit disposition, but this is authorized editorial work, not a requirement that the owner answer hundreds of questions. Defer genuinely unresolved cases. Do not fill all entries with boilerplate to claim semantic review. Optional `excerpts` use the same exact source fields without `claim` or `relation` and select evidence that is too long for automatic inclusion.
+### Check and finish
+
+Repeat only while work_pending. For needs_evidence, retrieve the reported source IDs or select appropriate excerpts. For needs_owner, ask only the unresolved consequential questions. Missing publication authorization is a separate stop, not a reason to redo review.
 
 ```sh
-python3 -m conversation_archive reading status --run /path/to/collection/.state/reading-01 --answers /path/to/collection/.state/answers.json
-python3 -m conversation_archive reading check --run /path/to/collection/.state/reading-01 --answers /path/to/collection/.state/answers.json --output /path/to/collection/.state/preview-01
+python3 -m conversation_archive reading check --run /path/to/collection/.state/reading-01 --answers /path/to/collection/.state/reading-01/answers.json --output /path/to/preview-01
+python3 -m conversation_archive reading finish --run /path/to/collection/.state/reading-01
 ```
 
-`status` can inspect partial review work. `check` refuses missing dispositions. The preview contains the proposed `organized.md`, an entry-level diff in `preview.md`, and a checked receipt in `preview.json`. Deferred entries remain visibly unresolved, not silently confirmed.
+Inspect the exact proposed Markdown and entry diff before finish. It recomputes a hash-bound preview, then publishes only to the preauthorized fresh destination. Without one it returns awaiting_publication_authorization and the preview path. No pending/deferred findings or missing critical evidence may pass autonomous finish. Noncritical accepted access limits remain counted separately. Inputs, manual output edits and all source bytes stay unchanged; exact replay is idempotent.
 
-### Inspect and publish
+Publication creates one current index and body-derived source lists. Full machine tables, old reports and binary payloads stay outside reading output. Existing included sources remain available on a no-edit repeat without nesting their generated wrappers. Excerpts never become complete originals. Critical dependencies are separately navigable without modifying literal quotations.
 
-The export regenerates one index and source lists from complete entry bodies. It retains selected exact evidence and supported scoped decisions, not whole before/after reports, machine tables or encoded media. Small available source blocks are included by default (1,600 characters); use `--max-source-chars` or explicit excerpts to adjust. Long or absent targets become explicit external references, not dangling internal links. That is an access limitation, not proof that the source is unnecessary.
+### Manual and older workflows
 
-For recognized old bundles, all explicitly preserved document hashes are checked. Entry locators and supported active `bind`/`bind_mentions` scopes are validated and retained. Other active operation types block conversion. This is not full legacy snapshot migration or certification of every historical table.
+The lower-level prepare/packet/source/check/publish/status workflow remains available without `--autonomous`; it does not enforce every new per-finding rule. Do not switch to it merely to evade an autonomous failure. Explicit manual publication uses `reading publish --run RUN --answers ANSWERS --preview PREVIEW_DIR --output FRESH_FILE --approve-publication` under actual authorization.
 
-```sh
-python3 -m conversation_archive reading publish --run /path/to/collection/.state/reading-01 --answers /path/to/collection/.state/answers.json --preview /path/to/collection/.state/preview-01 --output /path/to/collection/reading-approved.md --approve-publication
-```
+Use `reading prepare --reuse PREVIOUS_PREVIEW_JSON` only for checked 1.1 receipts and unchanged context. It retains reviewer attribution and selected evidence when the strict scope still matches. Prepare fresh 1.1 work for 1.0 receipts. Complete 1.0 source wrappers remain readable after exact hash verification; unverifiable legacy excerpts require original recovery. Unknown active legacy correction operations still stop conversion. This is not a full snapshot migration engine.
 
-Inspect the exact preview first. Publication recomputes it, checks source and answer hashes, and creates a fresh local file without overwriting originals or manual edits. Exact replay returns `already_published`. There is no remote upload, automatic authority switch or global CURRENT pointer. Keep one selected maintained document; never edit two competing masters. Existing canonical-source changes still use the ordinary checked writer.
+## 7. Later exports and the actual reader
 
-For later quality passes, `reading prepare --reuse /path/to/previous/preview.json` reuses only unchanged reviewed entry/evidence/decision context and retains the recorded reviewer. Changed items need reassessment. Keep originals, receipts and actual review answers outside Git; disposable packets can be regenerated.
+Import changes into fresh datasets/runs and compare with the current maintained document. Previous coverage is not review of changed text. Only the selected Markdown needs to be furnished to ChatGPT; a source ID or local path is not access to original bytes. Test real retrieval before adding infrastructure. Local structural tests do not measure native search ranking or factual accuracy.
 
-## 7. Later exports and actual ChatGPT retrieval
-
-Import changed exports into fresh datasets/runs and compare with the current manually maintained document. Do not equate earlier coverage with review of changed source text or claim automatic cross-export semantic deduplication.
-
-Only the selected Markdown needs to be furnished to ChatGPT. Entries must be intelligible without internal JSON. A source ID or local path does not make the original available in ChatGPT. Test a small representative and adversarial question set through the actual reader before assuming improved recall or adding infrastructure. Local structural checks measure neither native search ranking nor factual accuracy.
-
-Original archives, checkpoints, paid-attempt accounting and previous corrections are not removed by cleanup. See [compatibility](compatibility.md) for older stores. The code makes no model calls during reading audit/publication; letting a cloud agent read local packets is still data transfer and needs authorization. CI uses invented fixtures only.
+All private sources, checkpoints, prompts and answers remain outside Git. Reading commands make no model calls; a cloud agent reading local packets is still a separately authorized transfer. Keep originals and previous corrections. CI uses invented fixtures and the existing demos only.
