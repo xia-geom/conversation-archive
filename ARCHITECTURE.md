@@ -40,7 +40,7 @@ Maintained Markdown + explicitly selected preserved reference (optional)
     -> fresh local Markdown, only within publication authorization
 ```
 
-The autonomous feature is a work protocol for the agent already running, not a new model launcher. It makes no model calls, uploads or background schedules. No database, graph, embedding service, browser app or new runtime dependency is introduced. The existing `reconciliation.py`, `reconcile_cli.py` and `master_validation.py` retain the normal checked writer; raw-store tools remain optional.
+The autonomous feature is a work protocol for the agent already running, not a new model launcher. It makes no model calls, uploads or background schedules. No step imports SQL. No database, graph, embedding service, browser app or new runtime dependency is introduced. The existing `reconciliation.py`, `reconcile_cli.py` and `master_validation.py` retain the normal checked writer; raw-store tools remain optional.
 
 ## Small implementation layers
 
@@ -66,6 +66,8 @@ Generated source wrappers do not become new evidence on the next pass. Retained 
 
 ## Authorization and stopping
 
+Manual edits form the current-document baseline. Stale input and reference hashes stop updates rather than overwriting that baseline.
+
 Preparation requires an input-scope statement. Optional `--publish-to` records authorization for one fresh destination. `finish` recomputes the preview and refuses pending findings, deferred judgments or missing critical evidence. Without a destination it returns a preview for approval. It does not overwrite original/manual files or choose a global current archive.
 
 Progress distinguishes pending work, owner questions, missing evidence, readiness and publication. Empty submissions report no_progress; accepted revisions have a finite cap. That cap is not a token/dollar budget and does not count rejected attempts. The agent must stop repeated failures and respect existing model-transfer and spending authorization.
@@ -78,4 +80,4 @@ The 1.1 reader accepts verified complete 1.0 publication blocks. Old excerpts wi
 
 The primary reader must reach exact entries, relevant decisions and available sources through the actual interface. A path is not a working ChatGPT source link. Only selected Markdown is furnished to ChatGPT; native semantic-search quality needs a separate evaluation. No medical interpretation, new Gemini adapter, private-archive repair or complete semantic discovery is implied by this code change.
 
-Run `python3 -m unittest discover -s tests -v`, both existing demos and public reading help. CI uses invented sources. Regressions exercise lost correction answers, bad moves, unresolved findings, reference conflicts, stale/concurrent submissions, read-only inputs, resumability and repeated publication.
+Run `python3 -m unittest discover -s tests -v`, both existing demos and public reading help. CI uses synthetic sources only. Regressions exercise lost correction answers, bad moves, unresolved findings, reference conflicts, stale/concurrent submissions, read-only inputs, resumability and repeated publication.
