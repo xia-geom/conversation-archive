@@ -45,8 +45,10 @@ def outside(output, *files):
     return target
 
 
-def prepare(source, run, reuse=None):
-    doc = Document.read(source)
+def prepare(source, run, reuse=None, reference=None, autonomous=False, reviewer="Codex",
+            scope_note="", publish_to=None, findings=None, max_submissions=200):
+    from .reading_evidence import load_document
+    doc = load_document(source, reference)
     audit = doc.audit()
     prior = read_json(reuse) if reuse else None
     if prior:
@@ -57,6 +59,20 @@ def prepare(source, run, reuse=None):
         reused_authors={eid: dict(review_sha256=sha(encoded(old)),
             actor=prior.get("review_authors", {}).get(eid, {"name": prior["reviewer"], "role": prior["reviewer_role"]}))
             for eid, old in prior_reviews.items() if eid in doc.entries and old["basis"] == doc.basis(eid)})
+    inventory["reference"] = {"path": str(Path(reference).resolve()), **doc.reference_info} if reference else None
+    if autonomous:
+        from .reading_work import CONTRACT, findings_for
+        need(isinstance(reviewer, str) and reviewer.strip() and isinstance(scope_note, str) and scope_note.strip(),
+             "Autonomous work needs an attributed reviewer and explicit input-scope note")
+        need(type(max_submissions) is int and 1 <= max_submissions <= 2000, "Invalid submission budget")
+        target = outside(publish_to, source, *([reference] if reference else [])) if publish_to else None
+        need(target is None or not target.exists(), "Preauthorized destination must be a fresh file")
+        need(target is None or not target.is_relative_to(Path(run).resolve()), "Publication must be outside review bookkeeping")
+        inventory["work"] = dict(contract=CONTRACT, reviewer=reviewer, scope_note=scope_note,
+            publish_to=str(target) if target else None, max_submissions=max_submissions,
+            findings=findings_for(doc, audit, read_json(findings) if findings else None))
+    else:
+        need(not (findings or publish_to), "Findings and preauthorization require --autonomous")
     inventory["run_id"] = sha(encoded(inventory))
     answers = dict(version=VERSION, run_id=inventory["run_id"], input_sha256=doc.fingerprint,
                    reviewer="", reviewer_role="authorized_agent", selection_note="", reviews=[], excerpts=[])
@@ -64,12 +80,24 @@ def prepare(source, run, reuse=None):
         old = prior_reviews.get(eid)
         if old and old["basis"] == doc.basis(eid):
             answers["reviews"].append(deepcopy(old))
-    out = outside(run, source)
+    if autonomous:
+        # Entry reuse alone cannot settle fresh findings or source dispositions.
+        answers.update(reviewer=reviewer, selection_note=scope_note, issue_resolutions=[],
+                       source_changes=[], revision=0, last_submission_sha256=None)
+        if prior and prior.get("work_findings") == inventory["work"]["findings"]:
+            answers["issue_resolutions"] = deepcopy(prior.get("issue_resolutions", []))
+            answers["source_changes"] = deepcopy(prior.get("source_changes", []))
+        else:
+            affected = {i["entry_id"] for i in inventory["work"]["findings"]}
+            answers["reviews"] = [r for r in answers["reviews"] if r["entry_id"] not in affected]
+    out = outside(run, source, *([reference] if reference else []))
     need(not out.exists(), "Review run exists; reuse it or choose a fresh run")
     out.mkdir(parents=True, mode=0o700)
     try:
         fresh_file(out / "audit.json", encoded(inventory))
         fresh_file(out / "answers.template.json", encoded(answers))
+        if autonomous:
+            fresh_file(out / "answers.json", encoded(answers))
         lines = ["# Reading audit\n", "Original input is read-only. No semantic verification has been performed.\n",
                  f"Entries: {len(doc.entries)}. Reusable reviewed entries: {len(answers['reviews'])}.\n",
                  "All entries need an attributed keep/revise/defer disposition for the initial pass. Review by entry, not by every identity/link.\n"]
@@ -78,6 +106,8 @@ def prepare(source, run, reuse=None):
             lines.append("- " + issue["kind"] + " / " + issue["code"] + " / " + (issue["entry_id"] or "document") + ": " + json.dumps(issue["detail"], ensure_ascii=False) + "\n")
         fresh_file(out / "audit.md", "\n".join(lines).encode())
         need(sha(read_utf8(source)) == doc.fingerprint, "Input changed while preparing review")
+        if reference:
+            need(sha(read_utf8(reference)) == inventory["reference"]["sha256"], "Reference changed while preparing review")
     except Exception:
         shutil.rmtree(out)
         raise
@@ -88,7 +118,11 @@ def prepare(source, run, reuse=None):
 def current(run):
     inv = read_json(Path(run) / "audit.json")
     need(inv.get("version") == VERSION and inv.get("run_id") == sha(encoded({k: v for k, v in inv.items() if k != "run_id"})), "Review inventory changed")
-    doc = Document.read(inv["input_path"])
+    from .reading_evidence import load_document
+    ref = inv.get("reference")
+    if ref:
+        need(sha(read_utf8(ref["path"])) == ref["sha256"], "Reference evidence changed; prepare a new run")
+    doc = load_document(inv["input_path"], ref["path"] if ref else None)
     need(doc.fingerprint == inv["input_sha256"], "Stale input; retain answers and prepare a new run")
     need(inv["entry_basis"] == {eid: doc.basis(eid) for eid in doc.entries}, "Entry or source scope changed")
     return inv, doc
@@ -132,7 +166,8 @@ def source_packet(run, source_id, output, start=0, length=20000):
     end = min(start + length, len(source["text"]))
     text = source["text"][start:end]
     need(not DATA.search(text), "Encoded media is not a text review packet")
-    header = f"# Exact source range\n\nSource: {source_id}\n\nSHA-256 of full block: {source['sha256']}\n\nCharacters [{start}, {end}) of {len(source['text'])}; Unicode offsets, not bytes.\n\n"
+    availability = "Retained excerpt only; offsets refer to the available excerpt, not the full original.\n" if not source.get("complete", True) else ""
+    header = availability + f"# Exact source range\n\nSource: {source_id}\n\nSHA-256 of full block: {source['sha256']}\n\nCharacters [{start}, {end}) of {len(source['text'])}; Unicode offsets, not bytes.\n\n"
     fresh_file(outside(output, inv["input_path"], Path(run) / "audit.json"), (header + quote_block(text)).encode())
     return {"status": "source_written", "start": start, "end": end, "complete": start == 0 and end == len(source["text"])}
 
