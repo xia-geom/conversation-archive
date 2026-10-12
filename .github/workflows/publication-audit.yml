@@ -38,7 +38,7 @@ jobs:
           AUDIT_REPO: ${{ github.repository }}
         run: python tools/publication_audit.py --repo "$AUDIT_REPO" --output "$RUNNER_TEMP/publication-review"
       - name: Retain private review material briefly
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: private-publication-review
           path: ${{ runner.temp }}/publication-review/
