@@ -1,7 +1,15 @@
 # Examples
 
-Use the [README's Markdown demo](../README.md#try-it-without-private-data-or-a-model) to create an invented `organized.md` with source quotations and a checked update. It requires no live model or private data.
+[Read the sample archive](sample-archive.md) before installing anything. It is the exact Markdown produced by the invented garden demo, including the original quotation, uncertain event date, and source location.
 
-`exports.example.toml` is the input-configuration template. Copy and edit it locally; never commit real export locations or content. `demo-report.json` remains the expected output of the older candidate-only synthetic exercise used by regression tests.
+Recreate it from the repository root:
 
-The former organization catalogs and question-batch examples were removed with their separate graph/identity engine. [Compatibility](../docs/compatibility.md) points to their historical implementation. See [Workflow](../docs/workflow.md) and [Formats](../docs/formats.md) for the current one-document path.
+```sh
+python3 -m conversation_archive demo --output data/markdown-demo
+```
+
+Open `data/markdown-demo/organized.md`. Use a fresh output directory on each run. The demo's review decisions are predetermined; no private data or model connection is required.
+
+For your own export, follow [Getting started](../docs/getting-started.md). [exports.example.toml](exports.example.toml) is the input-configuration template. Copy and edit it privately; keep real export locations and content outside Git. `demo-report.json` records the older candidate-extraction fixture used by regression tests.
+
+[Workflow reference](../docs/workflow.md) · [Formats](../docs/formats.md) · [Compatibility with older examples](../docs/compatibility.md)

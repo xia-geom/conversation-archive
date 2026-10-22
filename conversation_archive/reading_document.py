@@ -116,7 +116,7 @@ def entry_blocks(text):
     ts = tokens(text)
     entries = {}
     for index, token in enumerate(ts):
-        if token["kind"] != "heading" or token["level"] != 2:
+        if token["kind"] != "heading" or token["level"] not in (2, 3):
             continue
         match = ENTRY.fullmatch(token["title"])
         if not match:
@@ -128,7 +128,11 @@ def entry_blocks(text):
             prior = ts[index - 1]
             need(not text[prior["end"]:lo].strip(), "Unexpected content between entry anchor and heading")
             # The anchor is structural; entry text starts at its heading.
-        end_token = next((t for t in ts[index + 1:] if t["kind"] == "heading" and t["level"] <= 2), None)
+        # Entries may be direct sections or sit under a subject heading. A new
+        # entry always ends the previous one, even when the two use mixed levels.
+        end_token = next((t for t in ts[index + 1:] if t["kind"] == "heading" and
+                          (t["level"] <= token["level"] or
+                           (t["level"] in (2, 3) and ENTRY.fullmatch(t["title"])))), None)
         hi = end_token["start"] if end_token else len(text)
         # An immediately preceding anchor belongs to the following section.
         if end_token:

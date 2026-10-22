@@ -240,14 +240,35 @@ def publish(run, answers, preview, output, approved=False):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(
+        prog="conversation-archive reading",
+        description="Audit an existing organized document, review whole entries, and publish a checked local reading copy.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""Start an audit:
+  python3 -m conversation_archive reading prepare --input /path/to/organized.md --run /path/to/reading-review
+
+Next: read audit.md in the run directory, inspect entries with packet, and record
+keep/revise/defer decisions in a copy of answers.template.json. Read exact source
+ranges with source when needed. Use check to create a preview, inspect it, then
+publish with approval to a fresh local file. No remote upload occurs.
+
+Workflow: prepare -> packet / source -> check -> publish
+Use status to see remaining review work. Full guide: docs/workflow.md""")
     commands = parser.add_subparsers(dest="command", required=True)
-    p = commands.add_parser("prepare")
+    p = commands.add_parser("prepare", help="Audit a document and create entry-review templates",
+                            description="Audit a document and create entry-review templates in a fresh run directory.")
     p.add_argument("--input", type=Path, required=True)
     p.add_argument("--run", type=Path, required=True)
     p.add_argument("--reuse", type=Path)
-    for command in ("packet", "source", "check", "publish", "status"):
-        p = commands.add_parser(command)
+    descriptions = {
+        "packet": "Read whole entries with their available source evidence",
+        "source": "Read an exact range from a source or non-entry document context",
+        "check": "Validate review decisions and generate a publication preview",
+        "publish": "Create a fresh local Markdown file from an approved preview",
+        "status": "See entry-review coverage and unresolved audit findings",
+    }
+    for command, description in descriptions.items():
+        p = commands.add_parser(command, help=description, description=description)
         p.add_argument("--run", type=Path, required=True)
         if command != "status":
             p.add_argument("--output", type=Path, required=True)

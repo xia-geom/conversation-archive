@@ -2,6 +2,8 @@
 
 [Architecture](../ARCHITECTURE.md) · [Formats](formats.md) · [Troubleshooting](troubleshooting.md)
 
+**First visit?** Start with [Getting started](getting-started.md) for setup, an example result, and conversation selection. This page is the command reference. For raw exports, begin at step 1. For an existing archive in the [supported Markdown format](formats.md), go directly to [step 6](#6-entry-audit-reconciliation-and-clean-reading-publication). Step 3 is optional.
+
 The product is one useful Markdown file. An authorized agent normally handles these stages. Import, extraction, review, installation and publication are not interchangeable claims of completion. No SQL, embedding service, graph server or HTML framework is required.
 
 ## 1. Preserve inputs and import
@@ -33,6 +35,8 @@ python3 -m conversation_archive organize packet --run /path/to/collection/.state
 Packets default to readable Markdown. `--format json`, `--packet-id` and a fresh `--output` support programmatic or selected reading, including already covered evidence. Rendering is not a review decision.
 
 For supplied conversation IDs, including Claude, use `--membership /path/to/selection.json` instead of `--project-id`. Membership includes `conversation_ids`, `observed_at`, `evidence` and `project_name`. Do not guess live app membership. Missing requested conversations remain reported.
+
+The [getting-started guide](getting-started.md) shows how to find these IDs and create a complete selection file. Use IDs from your exported records, not conversation titles.
 
 Read the current document and relevant complete source context. Select useful reports, decisions, projects, preferences and qualifications within the user's scope. Separate plans from completed actions and assistant suggestions from user statements. Do not merge unrelated Health and Emotion collections.
 

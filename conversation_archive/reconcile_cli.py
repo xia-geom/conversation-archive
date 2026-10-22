@@ -1,5 +1,6 @@
 """One Markdown workflow, with the old reconcile spelling retained for saved runs."""
 
+import argparse
 from pathlib import Path
 from collections import defaultdict
 import json
@@ -9,12 +10,26 @@ from . import reconciliation as r
 
 def add_parser(sub):
     parent = sub.add_parser("organize", aliases=["reconcile"],
-                            help="Maintain one organized Markdown document")
+        help="Review imported conversations and update one organized Markdown document",
+        description="Review source conversations, compose supported entries, and apply checked edits to your document.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""Workflow:
+  init -> prepare -> packet -> record -> draft -> check -> apply -> status
+
+Start a new document:
+  python3 -m conversation_archive organize init --document /path/to/organized.md
+
+Next: import exports with normalize, then use organize prepare --help to select
+conversations for review. Record reviewed findings before drafting edits.
+Inspect the checked diff before applying approved changes. docs/workflow.md
+contains the complete sequence; docs/formats.md describes the review JSON.""")
     commands = parent.add_subparsers(dest="reconcile_command", required=True)
-    p = commands.add_parser("init", help="Create a Markdown document; never overwrite one")
+    p = commands.add_parser("init", help="Create a Markdown document; never overwrite one",
+                            description="Create a new organized Markdown document without overwriting an existing file.")
     p.add_argument("--document", type=Path, required=True)
     p.add_argument("--title", default="Organized conversations")
-    p = commands.add_parser("prepare")
+    p = commands.add_parser("prepare", help="Select imported conversations and create a review run",
+                            description="Select conversations from an imported dataset and bind a new review run to your document.")
     p.add_argument("--dataset", type=Path, required=True)
     target = p.add_mutually_exclusive_group(required=True)
     target.add_argument("--document", type=Path, help="Single Markdown output; no separate reports")
@@ -25,8 +40,16 @@ def add_parser(sub):
     select.add_argument("--project-id")
     select.add_argument("--membership", type=Path)
     p.add_argument("--max-chars", type=int, default=40000)
-    for command in ("packet", "record", "draft", "status", "check", "apply"):
-        p = commands.add_parser(command)
+    descriptions = {
+        "packet": "Read exact source conversations selected for review",
+        "record": "Save reviewed findings and their supporting quotations",
+        "draft": "Build a proposed document update from reviewed findings and edits",
+        "status": "See review coverage, installed changes, and unresolved work",
+        "check": "Validate proposed changes and inspect their diff before applying",
+        "apply": "Install approved changes after checking the current document",
+    }
+    for command, description in descriptions.items():
+        p = commands.add_parser(command, help=description, description=description)
         p.add_argument("--run", type=Path, required=True)
         if command == "packet":
             p.add_argument("--packet-id")
