@@ -1,7 +1,6 @@
 """Executable Markdown onboarding and local link checks; no network/model calls."""
 from __future__ import annotations
 
-import json
 import os
 from pathlib import Path
 import re
@@ -55,7 +54,7 @@ def local_link_errors(root: Path, files: list[Path]) -> list[str]:
             if parsed.scheme or parsed.netloc: continue
             path = unquote(parsed.path)
             target = (source.parent / path).resolve() if path else source.resolve()
-            label = f"{source.relative_to(root)}: {link}"
+            label = f"{source.resolve().relative_to(root)}: {link}"
             if not target.is_relative_to(root): errors.append(label + " escapes repository")
             elif not target.exists(): errors.append(label + " missing target")
             elif parsed.fragment and target.is_file() and target.suffix.lower() == ".md":
@@ -121,16 +120,14 @@ class DocumentationTests(unittest.TestCase):
             commands = [line for line in block.splitlines() if line.strip() and not line.lstrip().startswith("#")]
             self.assertEqual(len(commands), 1)
             command = shlex.split(commands[0])
-            self.assertEqual(command[:3], ["python3", "-m", "conversation_archive.demo"])
+            self.assertEqual(command[:4], ["python3", "-m", "conversation_archive", "demo"])
             result = subprocess.run([sys.executable, *command[1:]], cwd=checkout, capture_output=True,
                 text=True, encoding="utf-8", env={**os.environ, "PYTHONIOENCODING": "utf-8"}, timeout=60)
             self.assertEqual(result.returncode, 0, result.stderr)
-            report = json.loads(result.stdout)
-            self.assertEqual(report, {"fixture_only_not_model_accuracy": True, "document": "organized.md",
-                "entries": 1, "checked": "passed", "replay": "already_applied", "original_unchanged": True,
-                "database_files": 0})
             output = checkout / "data/markdown-demo"
+            self.assertIn(str(output / "organized.md"), result.stdout)
             text = (output / "organized.md").read_text()
+            self.assertEqual(text, (ROOT / "examples/sample-archive.md").read_text())
             self.assertIn("The owner reported planting mint.", text)
             self.assertIn("我今天种了薄荷。", text)
             self.assertIn("JSON pointer", text)

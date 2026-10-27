@@ -5,6 +5,7 @@ import argparse
 import copy
 import json
 from pathlib import Path
+import sys
 
 from . import autonomy as a
 from .extraction import ExtractionError, request_for, validate_proposal
@@ -68,8 +69,8 @@ def run_demo(output: Path) -> dict:
     from .pipeline import normalize
     from . import reconciliation as r
     output = Path(output).resolve()
-    if output.exists() and any(output.iterdir()):
-        raise ExtractionError("Demo output must be new or empty")
+    if output.exists() and (not output.is_dir() or any(output.iterdir())):
+        raise ExtractionError("Demo output exists and is not an empty directory; choose a new --output path")
     output.mkdir(parents=True, exist_ok=True)
     (output / "raw.json").write_text(json.dumps(synthetic_export(), ensure_ascii=False), encoding="utf-8")
     (output / "local.toml").write_text('[[sources]]\nprovider = "chatgpt"\npath = "raw.json"\n', encoding="utf-8")
@@ -114,7 +115,7 @@ def run_markdown_demo(output: Path) -> dict:
     from . import reconciliation as r
     output = Path(output).resolve()
     if output.exists():
-        raise ExtractionError("Markdown demo output must be new")
+        raise ExtractionError("Demo output already exists; choose a new --output path. Existing files were not changed.")
     exports = output / "exports"
     state = output / ".state"
     exports.mkdir(parents=True)
@@ -142,17 +143,20 @@ def run_markdown_demo(output: Path) -> dict:
                        attribution="owner", quotes=[quote])])
     r.record(run, decision)
     entry = ('<a id="e0001"></a>\n### E0001 — Garden\n\n'
+             '**Source references:** [SRC-0001](#src-0001)\n\n'
              'The owner reported planting mint.\n'
-             'Event date: not established by the message timestamp.\n\n'
-             f'Source: ChatGPT message `{owner["original_message_id"]}`, export SHA-256 '
-             f'`{owner["provenance"]["sha256"]}`, JSON pointer `{owner["provenance"]["json_pointer"]}`.\n\n'
-             f'```text\n{owner["text"]}\n```')
+             'Event date: not established by the message timestamp.')
+    evidence = ('## Source evidence\n\n<a id="src-0001"></a>\n### Source SRC-0001\n\n'
+                'Role: user (owner report).\n\n'
+                f'Source: ChatGPT message `{owner["original_message_id"]}`, export SHA-256 '
+                f'`{owner["provenance"]["sha256"]}`, JSON pointer `{owner["provenance"]["json_pointer"]}`.\n\n'
+                f'```text\n{owner["text"]}\n```')
     edits = dict(batch_id="synthetic-update", document_sha256=r.digest(r.read_document(document)),
         decision_ids=[decision["decision_id"]], finding_dispositions={"synthetic-garden/F1": dict(
             outcome="integrated", reason="Explicit fixture decision, not live user review.", entry_ids=["E0001"])},
         patches=[dict(before='<!-- Add supported entries with stable E0001-style IDs here. -->', after=entry),
                  dict(before="No review has been completed yet.",
-                      after="The source reports planting mint; its event date remains uncertain. This example covers one invented conversation only.")])
+                      after="The source reports planting mint; its event date remains uncertain. This example covers one invented conversation only.\n\n" + evidence)])
     batch = state / "update.json"
     r.draft(run, edits, batch)
     checked = r.check(run, batch)[0]
@@ -165,11 +169,17 @@ def run_markdown_demo(output: Path) -> dict:
 
 
 def main(argv=None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output", type=Path, required=True)
+    parser = argparse.ArgumentParser(prog="python3 -m conversation_archive.demo", description=__doc__)
+    parser.add_argument("--output", type=Path, required=True, help="Directory for the synthetic exercise")
     parser.add_argument("--markdown", action="store_true", help="Produce the primary Markdown output from invented decisions")
     args = parser.parse_args(argv)
-    print(json.dumps((run_markdown_demo if args.markdown else run_demo)(args.output), indent=2))
+    try:
+        result = (run_markdown_demo if args.markdown else run_demo)(args.output)
+    except (ExtractionError, OSError) as exc:
+        message = str(exc) if isinstance(exc, ExtractionError) else "Cannot create demo output; check the path and permissions"
+        print(f"Error: {message}", file=sys.stderr)
+        return 2
+    print(json.dumps(result, indent=2))
     return 0
 
 

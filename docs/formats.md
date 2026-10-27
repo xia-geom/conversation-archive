@@ -20,6 +20,35 @@ Exact supporting words, in their original language.
 
 The nested fences above are illustrative; choose a longer enclosing fence when copying an example. Quoted/fenced evidence is protected by the writer. Preserve original wording there; later corrections belong in the surrounding account with their own sources. Entry headings/IDs, internal links and optional frontmatter counters are checked. A source locator identifies a record; it is not a promise that a local path opens from ChatGPT.
 
+The reading workflow accepts both `## E0001 — Title` and `### E0001 — Title`. An entry ends at a heading of the same or shallower level, or at another supported entry heading. Use deeper headings for sections within an entry. Headings inside fenced quotations or archived text remain evidence, not active entries.
+
+### Sources for reading review
+
+An inline quotation is readable, but a `reading` revision needs an exact witness from a named source block. Link the entry to that block, then keep the original text and provenance together:
+
+````md
+<a id="e0001"></a>
+### E0001 — Garden
+
+The owner reported planting mint. [Source quotation](#src-0001)
+
+## Source archive
+
+<a id="src-0001"></a>
+### Source SRC-0001
+
+Role: user. Provider: ChatGPT. Message: original-message-id.
+Export SHA-256: exact-export-hash. JSON pointer: /0/mapping/u/message.
+
+```text
+Exact supporting words, in their original language.
+```
+````
+
+Use real source identities and exact wording in your private document; the values above are placeholders. Source IDs must be unique. Each source block extends to the next anchor or the end of the document, so put unrelated sections before the source archive. `reading packet` supplies the source hash and text needed to construct exact character-range witnesses. See the [reading review contract](workflow.md#record-an-attributed-review).
+
+Existing inline-only documents can be inspected and kept or deferred. For repairs, use the ordinary `organize` writer or first establish linked source blocks without changing the preserved evidence. A reference to an unavailable source does not supply its contents.
+
 ## Import state
 
 The importer writes `manifest.json`, `conversations.jsonl`, `messages.jsonl`, `attachments.jsonl`, and a validation report. These are validated source representations, not a competing editorial archive. Records retain original IDs alongside unambiguous occurrence IDs, source hashes/pointers, graph/branch data, raw fields, roles, timestamps, text segments and media availability. Source offsets refer back to exported text. Exact schemas are exercised by `tests/test_pipeline.py`; `inspect --record-id` or `--line` retrieves records.
